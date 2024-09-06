@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
 
 #include "AssetTagTreeSubsystem.h"
@@ -22,12 +22,22 @@ void UAssetTagTreeSubsystem::Deinitialize()
 
 void UAssetTagTreeSubsystem::InsertObjectToTag(UObject* InsertedObject, const FGameplayTag& Tag)
 {
-	this->RootNode->Insert(InsertedObject, Tag);
+	this->RootNode->InsertToTag(InsertedObject, Tag);
+}
+
+void UAssetTagTreeSubsystem::InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer& Tags)
+{
+	this->RootNode->InsertToTags(InsertedObject, Tags);
 }
 
 void UAssetTagTreeSubsystem::RemoveObjectFromTag(UObject* RemovedObject, const FGameplayTag& Tag)
 {
-	this->RootNode->RemoveObject(RemovedObject, Tag);
+	this->RootNode->RemoveObjectFromTag(RemovedObject, Tag);
+}
+
+void UAssetTagTreeSubsystem::RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer& Tags)
+{
+	this->RootNode->RemoveObjectFromTags(RemovedObject, Tags);
 }
 
 void UAssetTagTreeSubsystem::NotifySubscribers(FGameplayTagContainer& TargetTags, EBroadCastTagStrategy TagCollectionStrategy)

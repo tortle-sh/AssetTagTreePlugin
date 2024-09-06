@@ -1,8 +1,9 @@
-﻿#pragma once
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
+#pragma once
 
 #include "AssetTagTreeNode.h"
-#include "AssetTagTreeContainerObserver.h"
-#include "AssetTagTreeContainerSubject.h"
+#include "GameplayTagObserver.h"
+#include "GameplayTagSubject.h"
 
 #include "AssetTagTreeRuntime.h"
 

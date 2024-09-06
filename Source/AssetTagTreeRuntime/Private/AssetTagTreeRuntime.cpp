@@ -1,4 +1,6 @@
-﻿#include "AssetTagTreeRuntime.h"
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
+
+#include "AssetTagTreeRuntime.h"
 
 DEFINE_LOG_CATEGORY(AssetTagTreeRuntime)
 

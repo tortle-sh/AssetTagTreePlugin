@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
 #pragma once
 
@@ -49,10 +49,16 @@ public:
 	TArray<UObject*> FindAllObjectsByTags(const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
-	void Insert(UObject* NewAssetTagObject, const FGameplayTag &Tag);
+	void InsertToTag(UObject* NewAssetTagObject, const FGameplayTag &Tag);
 
 	UFUNCTION(BlueprintCallable)
-	void RemoveObject(UObject* OldAssetTagObject, const FGameplayTag &Tag);
+	void InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer &Tags);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag &Tag);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveNode(const FGameplayTag &Tag);

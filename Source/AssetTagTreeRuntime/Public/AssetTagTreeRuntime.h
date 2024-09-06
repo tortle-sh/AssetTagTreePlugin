@@ -1,5 +1,6 @@
-﻿#pragma once
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
+#pragma once
 
 // #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"

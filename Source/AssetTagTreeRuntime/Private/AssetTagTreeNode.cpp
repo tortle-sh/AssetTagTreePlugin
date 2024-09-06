@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
 
 #include "AssetTagTreeNode.h"
@@ -61,7 +61,7 @@ TArray<UObject*> UAssetTagTreeNode::FindAllObjectsByTags(const FGameplayTagConta
 	return Results;
 }
 
-void UAssetTagTreeNode::Insert(UObject* NewAssetTagObject, const FGameplayTag& Tag)
+void UAssetTagTreeNode::InsertToTag(UObject* NewAssetTagObject, const FGameplayTag& Tag)
 {
 	if(!Tag.MatchesTag(NodeTag))
 	{
@@ -77,7 +77,7 @@ void UAssetTagTreeNode::Insert(UObject* NewAssetTagObject, const FGameplayTag& T
 	{
 		if(Tag.MatchesTag(Child->NodeTag))
 		{
-			Child->Insert(NewAssetTagObject, Tag);
+			Child->InsertToTag(NewAssetTagObject, Tag);
 			return;
 		}
 	}
@@ -88,10 +88,28 @@ void UAssetTagTreeNode::Insert(UObject* NewAssetTagObject, const FGameplayTag& T
 
 	this->Children.Add(NewChild);
 
-	NewChild->Insert(NewAssetTagObject, Tag);
+	NewChild->InsertToTag(NewAssetTagObject, Tag);
 }
 
-void UAssetTagTreeNode::RemoveObject(UObject* OldAssetTagObject, const FGameplayTag& Tag)
+void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags)
+{
+	if(!Tags.HasTag(NodeTag))
+	{
+		return;
+	}
+
+	if(Tags.HasTagExact(NodeTag))
+	{
+		this->Objects.Add(NewAssetTagObject);
+	}
+
+	for(auto Child : Children)
+	{
+		Child->InsertToTags(NewAssetTagObject, Tags);
+	}
+}
+
+void UAssetTagTreeNode::RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag& Tag)
 {
 	if(!Tag.MatchesTag(NodeTag))
 	{
@@ -108,9 +126,27 @@ void UAssetTagTreeNode::RemoveObject(UObject* OldAssetTagObject, const FGameplay
 	{
 		if(Tag.MatchesTag(Child->NodeTag))
 		{
-			Child->RemoveObject(OldAssetTagObject, Tag);
+			Child->RemoveObjectFromTag(OldAssetTagObject, Tag);
 			return;
 		}
+	}
+}
+
+void UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags)
+{
+	if(!Tags.HasTag(NodeTag))
+	{
+		return;
+	}
+
+	if(Tags.HasTagExact(NodeTag))
+	{
+		Objects.Remove(OldAssetTagObject);
+	}
+
+	for(auto Child : Children)
+	{
+		Child->RemoveObjectFromTags(OldAssetTagObject, Tags);
 	}
 }
 

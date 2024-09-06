@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
 #pragma once
 
@@ -12,7 +12,7 @@ UE_DECLARE_GAMEPLAY_TAG_EXTERN(AssetTagTree);
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(AssetTagTree_A_1)
 
 UENUM()
-enum EBroadCastTagStrategy
+enum EBroadCastTagStrategy : uint8
 {
 	TAG_ONLY,
 	TAG_AND_CHILDREN,
@@ -32,13 +32,19 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void InsertObjectToTag(UObject* InsertedObject, const FGameplayTag &Tag);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
+	void InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer &Tags);
+
+	UFUNCTION(BlueprintCallable)
 	void RemoveObjectFromTag(UObject* RemovedObject, const FGameplayTag &Tag);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
+	void RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer &Tags);
+
+	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(FGameplayTagContainer &TargetTags, EBroadCastTagStrategy TagCollectionStrategy);
 
 };

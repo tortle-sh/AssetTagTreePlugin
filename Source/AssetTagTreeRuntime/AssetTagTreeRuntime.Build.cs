@@ -1,4 +1,6 @@
-﻿using UnrealBuildTool;
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
+
+using UnrealBuildTool;
 
 public class AssetTagTreeRuntime : ModuleRules
 {

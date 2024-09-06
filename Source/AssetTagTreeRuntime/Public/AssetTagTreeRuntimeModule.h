@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
+
+#pragma once
 
 #include "Modules/ModuleManager.h"
 
