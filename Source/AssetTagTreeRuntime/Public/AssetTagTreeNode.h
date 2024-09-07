@@ -11,7 +11,7 @@ class UCollectTagsAndChildrenStrategy;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSubTreeUpdatedDelegate);
 
 UCLASS(BlueprintType)
-class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
+class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -23,7 +23,7 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	UPROPERTY()
 	FSubTreeUpdatedDelegate OnSubTreeUpdated;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	FGameplayTag NodeTag;
 
 	UPROPERTY()
@@ -35,38 +35,47 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	UPROPERTY()
 	TArray<UObject*> Objects;
 
-	UFUNCTION()
 	void SetTag(const FGameplayTag &Tag);
-	
 	void CreateMissingChildren(const FGameplayTagContainer& Tags);
-	
+	void RemoveNode(const FGameplayTag &Tag);
+	void BroadcastUpdate() const;
+	void BroadcastUpdatesToChildren();
+	FSubTreeUpdatedDelegate &GetTreeUpdateDelegate() { return this->OnSubTreeUpdated; }
+	FGameplayTag GetNextTag(const FGameplayTag &SearchedTag);
+
 public:
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	bool IsLeaf() const;
 
+	UFUNCTION(BlueprintCallable)
+	void PrintTree();
+
+	UFUNCTION(BlueprintCallable)
+	TArray<UAssetTagTreeNode*> FindNodesByTags(const FGameplayTagContainer &Tags);
+	
 	UFUNCTION(BlueprintCallable)
 	TArray<UObject*> FindObjectsByTag(const FGameplayTag &Tag) const;
 
 	UFUNCTION(BlueprintCallable)
-	TArray<UObject*> FindAllObjectsByTags(const FGameplayTagContainer &Tags);
+	TArray<UObject*> FindObjectsByTags(const FGameplayTagContainer &Tags);
+
+	UFUNCTION(BlueprintCallable)
+	FGameplayTag GetTag() const;
 
 	UFUNCTION()
-	TArray<UAssetTagTreeNode*> FindAllNodesByTags(const FGameplayTagContainer &Tags);
+	FSubTreeUpdatedDelegate &GetOnSubTreeUpdatedDelegate();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void InsertToTag(UObject* NewAssetTagObject, const FGameplayTag &Tag);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer &Tags);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag &Tag);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer &Tags);
-
-	UFUNCTION(BlueprintCallable)
-	void RemoveNode(const FGameplayTag &Tag);
 
 	UFUNCTION()
 	void CollectChildTagsOfTargetTags(const FGameplayTagContainer &TargetTags, FGameplayTagContainer &ChildTags);
@@ -75,26 +84,5 @@ public:
 	void CollectChildTags(FGameplayTagContainer &ChildTags);
 
 	UFUNCTION()
-	void BroadcastUpdate() const;
-
-	UFUNCTION()
 	void BroadcastUpdates(const FGameplayTagContainer &Tags);
-
-	UFUNCTION()
-	void BroadcastUpdatesToChildren();
-
-	UFUNCTION()
-	FSubTreeUpdatedDelegate &GetTreeUpdateDelegate() { return this->OnSubTreeUpdated; }
-
-	UFUNCTION()
-	void PrintTree();
-
-	UFUNCTION()
-	FGameplayTag GetTag() const;
-
-	UFUNCTION()
-	FGameplayTag GetNextTag(const FGameplayTag &SearchedTag);
-
-	UFUNCTION()
-	FSubTreeUpdatedDelegate &GetOnSubTreeUpdatedDelegate();
 };

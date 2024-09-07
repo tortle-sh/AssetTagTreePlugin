@@ -33,7 +33,7 @@ void UAssetTagTreeSubsystem::RegisterCallbackOnNodes(const FTagTreeUpdateCallbac
 {
 	const FGameplayTagContainer FilteredTags = FilterTags(Tags);
 	
-	TArray<UAssetTagTreeNode*> Nodes = this->RootNode->FindAllNodesByTags(FilteredTags);
+	TArray<UAssetTagTreeNode*> Nodes = this->RootNode->FindNodesByTags(FilteredTags);
 	for (auto Node : Nodes)
 	{
 		UE_LOG(LogTemp, Display, TEXT("added Callback to %s"), *Node->GetTag().GetTagName().ToString());
@@ -46,7 +46,7 @@ void UAssetTagTreeSubsystem::RemoveCallbackFromNodes(const FTagTreeUpdateCallbac
 {
 	const FGameplayTagContainer FilteredTags = FilterTags(Tags);
 	
-	TArray<UAssetTagTreeNode*> Nodes = this->RootNode->FindAllNodesByTags(FilteredTags);
+	TArray<UAssetTagTreeNode*> Nodes = this->RootNode->FindNodesByTags(FilteredTags);
 	for(auto Node : Nodes)
 	{
 		UE_LOG(LogTemp, Display, TEXT("removed Callback from %s"), *Node->GetTag().GetTagName().ToString());

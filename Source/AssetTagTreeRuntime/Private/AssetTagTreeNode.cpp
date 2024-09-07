@@ -44,7 +44,7 @@ TArray<UObject*> UAssetTagTreeNode::FindObjectsByTag(const FGameplayTag& Tag) co
 	return {};
 }
 
-TArray<UObject*> UAssetTagTreeNode::FindAllObjectsByTags(const FGameplayTagContainer& Tags)
+TArray<UObject*> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -58,14 +58,14 @@ TArray<UObject*> UAssetTagTreeNode::FindAllObjectsByTags(const FGameplayTagConta
 	{
 		if (Tags.HasTag(Child->NodeTag))
 		{
-			Results.Append(Child->FindAllObjectsByTags(Tags));
+			Results.Append(Child->FindObjectsByTags(Tags));
 		}
 	}
 
 	return Results;
 }
 
-TArray<UAssetTagTreeNode*> UAssetTagTreeNode::FindAllNodesByTags(const FGameplayTagContainer& Tags)
+TArray<UAssetTagTreeNode*> UAssetTagTreeNode::FindNodesByTags(const FGameplayTagContainer& Tags)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -82,7 +82,7 @@ TArray<UAssetTagTreeNode*> UAssetTagTreeNode::FindAllNodesByTags(const FGameplay
 
 	for (auto Child : Children)
 	{
-		Results.Append(Child->FindAllNodesByTags(Tags));
+		Results.Append(Child->FindNodesByTags(Tags));
 	}
 
 	return Results;
