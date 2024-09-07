@@ -13,8 +13,8 @@ FGameplayTagContainerChangeData UGameplayTagContainerUtils::GetChangeData(
 	Data.RemovedTags.AppendTags(PreUpdateContainer);
 	Data.RemovedTags.RemoveTags(PostUpdateContainer);
 
-	Data.BroadcastTags.AppendTags(Data.InsertedTags);
-	Data.BroadcastTags.AppendTags(Data.RemovedTags);
+	Data.AllTags.AppendTags(Data.InsertedTags);
+	Data.AllTags.AppendTags(Data.RemovedTags);
 
 	return Data;
 }

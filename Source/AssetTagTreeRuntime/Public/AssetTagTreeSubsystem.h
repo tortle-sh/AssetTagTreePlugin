@@ -20,6 +20,8 @@ enum EBroadCastTagStrategy : uint8
 	TAG_CHILDREN_AND_PARENT
 };
 
+DECLARE_DYNAMIC_DELEGATE(FTagTreeUpdateCallbackDelegate);
+
 UCLASS()
 class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 {
@@ -28,10 +30,20 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 	UPROPERTY()
 	UAssetTagTreeNode *RootNode;
 
+	static FGameplayTagContainer FilterTags(const FGameplayTagContainer &Tags);
+
 public:
+	inline static const FGameplayTag ASTT_ROOT_TAG = FGameplayTag::RequestGameplayTag("AssetTagTree");
+	
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
-	
+
+	UFUNCTION(BlueprintCallable)
+	void RegisterCallbackOnNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveCallbackFromNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+
 	UFUNCTION(BlueprintCallable)
 	void InsertObjectToTag(UObject* InsertedObject, const FGameplayTag &Tag);
 
@@ -46,5 +58,5 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(FGameplayTagContainer &TargetTags, EBroadCastTagStrategy TagCollectionStrategy);
-
+	
 };

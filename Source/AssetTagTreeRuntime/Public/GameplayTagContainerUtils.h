@@ -14,7 +14,7 @@ struct FGameplayTagContainerChangeData
 
  	FGameplayTagContainer InsertedTags;
  	FGameplayTagContainer RemovedTags;
-	FGameplayTagContainer BroadcastTags;
+	FGameplayTagContainer AllTags;
 };
 
 UCLASS()

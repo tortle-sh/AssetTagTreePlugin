@@ -39,26 +39,24 @@ void FGameplayTagSubject::DeinitializeSubject()
 
 void FGameplayTagSubject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if(PropertyChangedEvent.GetPropertyName() != GET_MEMBER_NAME_CHECKED(FGameplayTagSubject, TagContainer))
+	if(!HaveTagsChanged(PropertyChangedEvent))
 	{
 		return;
 	}
 	
 	FGameplayTagContainerChangeData Data = UGameplayTagContainerUtils::GetChangeData(
-		PreChangeTagContainer, TagContainer);
+		this->PreChangeTagContainer, this->TagContainer);
 	UAssetTagTreeSubsystem* AssetTagTreeSubsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
 
 	if (Data.InsertedTags.Num() > 0)
 	{
-		LOG_INFO("Inserted Tags: %s", *Data.InsertedTags.ToString());
 		AssetTagTreeSubsystem->InsertObjectToTags(this->Parent, Data.InsertedTags);
 	}
 
 	if (Data.RemovedTags.Num() > 0)
 	{
-		LOG_INFO("Removed Tags: %s", *Data.RemovedTags.ToString());
 		AssetTagTreeSubsystem->RemoveObjectFromTags(this->Parent, Data.RemovedTags);
 	}
 
-	AssetTagTreeSubsystem->NotifySubscribers(Data.BroadcastTags, BroadcastStrategy);
+	AssetTagTreeSubsystem->NotifySubscribers(Data.AllTags, this->BroadcastStrategy);
 }

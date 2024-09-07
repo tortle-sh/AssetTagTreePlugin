@@ -38,6 +38,8 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	UFUNCTION()
 	void SetTag(const FGameplayTag &Tag);
 	
+	void CreateMissingChildren(const FGameplayTagContainer& Tags);
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	bool IsLeaf() const;
@@ -47,6 +49,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<UObject*> FindAllObjectsByTags(const FGameplayTagContainer &Tags);
+
+	UFUNCTION()
+	TArray<UAssetTagTreeNode*> FindAllNodesByTags(const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
 	void InsertToTag(UObject* NewAssetTagObject, const FGameplayTag &Tag);
@@ -89,4 +94,7 @@ public:
 
 	UFUNCTION()
 	FGameplayTag GetNextTag(const FGameplayTag &SearchedTag);
+
+	UFUNCTION()
+	FSubTreeUpdatedDelegate &GetOnSubTreeUpdatedDelegate();
 };
