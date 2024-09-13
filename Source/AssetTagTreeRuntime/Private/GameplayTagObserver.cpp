@@ -7,6 +7,8 @@
 
 void FGameplayTagObserver::InitializeObserver()
 {
+	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	Subsystem->RegisterCallbackOnNodes(Callback, this->TagContainer);
 }
 
 void FGameplayTagObserver::DeinitializeObserver()

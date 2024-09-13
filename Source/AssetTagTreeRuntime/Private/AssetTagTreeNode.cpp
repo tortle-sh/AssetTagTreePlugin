@@ -103,6 +103,10 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 
 		for (auto Child : Children)
 		{
+			if (!Child.IsValid())
+			{
+				continue;
+			}
 			if (Tag.MatchesTag(Child->NodeTag))
 			{
 				ExistingTags.AddTag(Tag);
@@ -117,6 +121,16 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 	for (auto Tag : MissingChildren)
 	{
 		FGameplayTag NextTag = GetNextTag(Tag);
+
+		if(!NextTag.MatchesTag(NodeTag))
+		{
+			continue;
+		}
+
+		if(NextTag.MatchesTagExact(NodeTag))
+		{
+			continue;
+		}
 
 		if(CreatedTags.HasTagExact(NextTag))
 		{

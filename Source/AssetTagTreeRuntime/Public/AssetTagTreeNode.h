@@ -27,7 +27,7 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	FGameplayTag NodeTag;
 
 	UPROPERTY()
-	TArray<UAssetTagTreeNode*> Children;
+	TArray<TWeakObjectPtr<UAssetTagTreeNode>> Children;
 
 	UPROPERTY()
 	TWeakObjectPtr<UAssetTagTreeNode> Parent;
