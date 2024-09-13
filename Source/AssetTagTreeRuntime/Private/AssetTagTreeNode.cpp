@@ -3,25 +3,17 @@
 
 #include "AssetTagTreeNode.h"
 
+#include "AssetTagTreeConstants.h"
 #include "AssetTagTreePCH.h"
-#include "NativeGameplayTags.h"
-
-UAssetTagTreeNode::UAssetTagTreeNode()
-{
-	NodeTag = FGameplayTag::RequestGameplayTag("AssetTagTree");
-}
-
-UAssetTagTreeNode::UAssetTagTreeNode(FGameplayTag Tag)
-	: NodeTag(Tag)
-{
-}
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "UObject/SavePackage.h"
 
 bool UAssetTagTreeNode::IsLeaf() const
 {
 	return Children.Num() == 0;
 }
 
-TArray<UObject*> UAssetTagTreeNode::FindObjectsByTag(const FGameplayTag& Tag) const
+TArray<TWeakObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTag(const FGameplayTag& Tag) const
 {
 	if (!Tag.MatchesTag(NodeTag))
 	{
@@ -35,27 +27,38 @@ TArray<UObject*> UAssetTagTreeNode::FindObjectsByTag(const FGameplayTag& Tag) co
 
 	for (auto Child : this->Children)
 	{
+		if (!Child.IsValid())
+		{
+			continue;
+		}
 		if (Tag.MatchesTag(Child->NodeTag))
 		{
-			return Child->FindObjectsByTag(Tag);
+			if (Child.IsValid())
+			{
+				return Child->FindObjectsByTag(Tag);
+			}
 		}
 	}
 
 	return {};
 }
 
-TArray<UObject*> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags)
+TArray<TWeakObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
 		return {};
 	}
 
-	TArray<UObject*> Results = {};
+	TArray<TWeakObjectPtr<UObject>> Results = {};
 	Results.Append(Objects);
 
 	for (auto Child : Children)
 	{
+		if (!Child.IsValid())
+		{
+			continue;
+		}
 		if (Tags.HasTag(Child->NodeTag))
 		{
 			Results.Append(Child->FindObjectsByTags(Tags));
@@ -82,10 +85,31 @@ TArray<UAssetTagTreeNode*> UAssetTagTreeNode::FindNodesByTags(const FGameplayTag
 
 	for (auto Child : Children)
 	{
+		if (!Child.IsValid())
+		{
+			continue;
+		}
 		Results.Append(Child->FindNodesByTags(Tags));
 	}
 
 	return Results;
+}
+
+void UAssetTagTreeNode::SetRootPackageName(const FString& PackageName)
+{
+	this->RootPackageName = PackageName;
+}
+
+FString UAssetTagTreeNode::BuildPackageObjectName(const FGameplayTag& NextTag)
+{
+	FString AsssetName = NextTag.GetTagName().ToString();
+	AsssetName = AsssetName.Replace(TEXT("."), TEXT("_"));
+	return AsssetName;
+}
+
+void UAssetTagTreeNode::SetParentTag(FGameplayTag NewParentTag)
+{
+	this->ParentTag = NewParentTag;
 }
 
 void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
@@ -103,6 +127,10 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 
 		for (auto Child : Children)
 		{
+			if (!Child.IsValid())
+			{
+				continue;
+			}
 			if (Tag.MatchesTag(Child->NodeTag))
 			{
 				ExistingTags.AddTag(Tag);
@@ -118,119 +146,169 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 	{
 		FGameplayTag NextTag = GetNextTag(Tag);
 
-		if(CreatedTags.HasTagExact(NextTag))
+		if (!NextTag.MatchesTag(NodeTag))
 		{
 			continue;
 		}
-		
-		UAssetTagTreeNode* NewChild = NewObject<UAssetTagTreeNode>();
-		NewChild->SetTag(NextTag);
-		this->Children.Add(NewChild);
 
+		if (NextTag.MatchesTagExact(NodeTag))
+		{
+			continue;
+		}
+
+		if (CreatedTags.HasTagExact(NextTag))
+		{
+			continue;
+		}
+
+		FString ChildAssetName = BuildPackageObjectName(NextTag);
+
+		UAssetTagTreeNode* NewChild = NewObject<UAssetTagTreeNode>(RootPackage, *ChildAssetName,
+		                                                           RF_Public | RF_Standalone);
+		NewChild->SetParentTag(this->GetTag());
+		NewChild->SetRootPackage(this->RootPackage);
+		NewChild->SetRootPackageName(this->RootPackageName);
+		NewChild->SetTag(NextTag);
+		FAssetRegistryModule::AssetCreated(NewChild);
+		NewChild->Persist();
+
+		this->Children.Add(NewChild);
 		CreatedTags.AddTag(NextTag);
 	}
 }
 
-void UAssetTagTreeNode::InsertToTag(UObject* NewAssetTagObject, const FGameplayTag& Tag)
+bool UAssetTagTreeNode::InsertToTag(UObject* NewAssetTagObject, const FGameplayTag& Tag)
 {
-	if (!Tag.MatchesTag(NodeTag))
+	if (!Tag.MatchesTag(this->NodeTag))
 	{
-		return;
+		return false;
 	}
 
-	if (Tag.MatchesTagExact(NodeTag))
+	if (Tag.MatchesTagExact(this->NodeTag))
 	{
 		this->Objects.Add(NewAssetTagObject);
-		return;
+		return true;
 	}
 
 	FGameplayTagContainer SingleTagContainer;
 	SingleTagContainer.AddTag(Tag);
 	CreateMissingChildren(SingleTagContainer);
 
+	bool bHasChildBeenUpdated = false;
 	for (auto Child : this->Children)
 	{
-		Child->InsertToTag(NewAssetTagObject, Tag);
+		if (Child.IsValid())
+		{
+			bHasChildBeenUpdated = Child->InsertToTag(NewAssetTagObject, Tag) ? true : bHasChildBeenUpdated;
+		}
 	}
+
+	return bHasChildBeenUpdated;
 }
 
-void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags)
+bool UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
-		return;
+		return false;
 	}
+
+	bool bHasSubtreeUpdated = false;
 
 	if (Tags.HasTagExact(NodeTag))
 	{
 		this->Objects.Add(NewAssetTagObject);
+		bHasSubtreeUpdated = true;
 	}
 
 	CreateMissingChildren(Tags);
 
 	for (auto Child : Children)
 	{
-		Child->InsertToTags(NewAssetTagObject, Tags);
+		if (Child.IsValid())
+		{
+			bHasSubtreeUpdated = Child->InsertToTags(NewAssetTagObject, Tags) ? true : bHasSubtreeUpdated;
+		}
 	}
+
+	return bHasSubtreeUpdated;
 }
 
-void UAssetTagTreeNode::RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag& Tag)
+bool UAssetTagTreeNode::RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag& Tag)
 {
 	if (!Tag.MatchesTag(NodeTag))
 	{
-		return;
+		return false;
 	}
 
 	if (Tag.MatchesTagExact(NodeTag))
 	{
 		Objects.Remove(OldAssetTagObject);
-		return;
+		return true;
 	}
 
 	for (auto Child : Children)
 	{
+		if (!Child.IsValid())
+		{
+			continue;
+		}
 		if (Tag.MatchesTag(Child->NodeTag))
 		{
-			Child->RemoveObjectFromTag(OldAssetTagObject, Tag);
-			return;
+			return Child->RemoveObjectFromTag(OldAssetTagObject, Tag);
 		}
 	}
+
+	return false;
 }
 
-void UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags)
+bool UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
-		return;
+		return false;
 	}
+
+	bool bHasSubtreeUpdated = false;
 
 	if (Tags.HasTagExact(NodeTag))
 	{
 		Objects.Remove(OldAssetTagObject);
+		bHasSubtreeUpdated = true;
 	}
 
 	for (auto Child : Children)
 	{
-		Child->RemoveObjectFromTags(OldAssetTagObject, Tags);
+		if (Child.IsValid())
+		{
+			bHasSubtreeUpdated = Child->RemoveObjectFromTags(OldAssetTagObject, Tags) ? true : bHasSubtreeUpdated;
+		}
 	}
+
+	return bHasSubtreeUpdated;
 }
 
-void UAssetTagTreeNode::RemoveNode(const FGameplayTag& Tag)
+bool UAssetTagTreeNode::RemoveNode(const FGameplayTag& Tag)
 {
 	if (!Tag.MatchesTag(NodeTag))
 	{
-		return;
+		return false;
 	}
 
 	for (auto Child : Children)
 	{
-		Child->RemoveNode(Tag);
+		if (Child.IsValid())
+		{
+			Child->RemoveNode(Tag);
+		}
 	}
 
 	Objects.Empty();
 	Children.Empty();
 	BroadcastUpdate();
 	OnSubTreeUpdated.Clear();
+
+	return true;
 }
 
 void UAssetTagTreeNode::CollectChildTagsOfTargetTags(const FGameplayTagContainer& TargetTags,
@@ -245,7 +323,10 @@ void UAssetTagTreeNode::CollectChildTagsOfTargetTags(const FGameplayTagContainer
 	{
 		for (auto Child : Children)
 		{
-			Child->CollectChildTagsOfTargetTags(TargetTags, ChildTags);
+			if (Child.IsValid())
+			{
+				Child->CollectChildTagsOfTargetTags(TargetTags, ChildTags);
+			}
 		}
 		return;
 	}
@@ -258,12 +339,15 @@ void UAssetTagTreeNode::CollectChildTags(FGameplayTagContainer& ChildTags)
 {
 	for (auto Child : Children)
 	{
-		ChildTags.AddTag(Child->NodeTag);
-		Child->CollectChildTags(ChildTags);
+		if (Child.IsValid())
+		{
+			ChildTags.AddTag(Child->NodeTag);
+			Child->CollectChildTags(ChildTags);
+		}
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdate() const
+void UAssetTagTreeNode::BroadcastUpdate()
 {
 	LOG_INFO("Broadcast from: %s", *NodeTag.GetTagName().ToString());
 	OnSubTreeUpdated.Broadcast();
@@ -283,17 +367,149 @@ void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags)
 
 	for (auto Child : Children)
 	{
-		Child->BroadcastUpdates(Tags);
+		if (Child.IsValid())
+		{
+			Child->BroadcastUpdates(Tags);
+		}
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdatesToChildren()
+void UAssetTagTreeNode::Persist()
 {
+	// TODO Fix Objects not being persisted
+	if (this->IsRootNode())
+	{
+		return;
+	}
+
+	UPackage* Package = this->RootPackage;
+
+	if (!Package)
+	{
+		return;
+	}
+
+	FSavePackageArgs SaveArgs;
+	{
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
+	}
+
+	// const FString PackageFileName = BuildFileName(this->NodeTag);
+	const FString PackageFileName = FPackageName::LongPackageNameToFilename(
+		RootPackageName, FPackageName::GetAssetPackageExtension());
+	const bool bSaveSuccessful = UPackage::SavePackage(Package, this, *PackageFileName, SaveArgs);
+	Package->MarkPackageDirty();
+	if (bSaveSuccessful)
+	{
+		LOG_WARNING("%s got saved into %s", *GetTag().GetTagName().ToString(), *PackageFileName);
+	}
+	else
+	{
+		LOG_ERROR("saving %s into %s failed", *GetTag().GetTagName().ToString(), *PackageFileName)
+	}
+}
+
+void UAssetTagTreeNode::PersistOnTags(const FGameplayTagContainer& Tags)
+{
+	if (!Tags.HasTag(NodeTag))
+	{
+		return;
+	}
+
+	if (Tags.HasTagExact(NodeTag))
+	{
+		this->Persist();
+	}
+
 	for (auto Child : Children)
 	{
-		Child->BroadcastUpdate();
-		Child->BroadcastUpdatesToChildren();
+		if (Child.IsValid())
+		{
+			Child->PersistOnTags(Tags);
+		}
 	}
+}
+
+void UAssetTagTreeNode::PersistAll()
+{
+	this->Persist();
+
+	for (auto Child : Children)
+	{
+		if (Child.IsValid())
+		{
+			Child->PersistAll();
+		}
+	}
+}
+
+bool UAssetTagTreeNode::IsRootNode() const
+{
+	return bIsRootNode;
+}
+
+void UAssetTagTreeNode::InitializeRootNode()
+{
+	if (IsRootNode())
+	{
+		UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+		Subsystem->RegisterRootNode(this);
+		this->PrintTree();
+	}
+}
+
+void UAssetTagTreeNode::SetRootPackage(UPackage* Package)
+{
+	this->RootPackage = Package;
+}
+
+void UAssetTagTreeNode::SetIsRootNode(bool value)
+{
+	this->bIsRootNode = value;
+}
+
+void UAssetTagTreeNode::InsertChildNode(UAssetTagTreeNode* Node)
+{
+	if (!this->IsAncestorOf(Node))
+	{
+		return;
+	}
+
+	for (auto Child : Children)
+	{
+		// prevent node being added twice
+		if (Child->GetTag().MatchesTagExact(Node->GetTag()))
+		{
+			return;
+		}
+	}
+
+	if (this->IsParentOf(Node))
+	{
+		this->Children.Add(Node);
+		return;
+	}
+
+	for (auto Child : Children)
+	{
+		Child->InsertChildNode(Node);
+	}
+}
+
+bool UAssetTagTreeNode::IsAncestorOf(UAssetTagTreeNode* Node) const
+{
+	return Node->GetTag().MatchesTag(this->NodeTag);
+}
+
+const FGameplayTag& UAssetTagTreeNode::GetParentTag() const
+{
+	return this->ParentTag;
+}
+
+bool UAssetTagTreeNode::IsParentOf(UAssetTagTreeNode* Node) const
+{
+	return Node->GetParentTag().MatchesTagExact(this->NodeTag);
 }
 
 void UAssetTagTreeNode::PrintTree()
@@ -302,7 +518,10 @@ void UAssetTagTreeNode::PrintTree()
 
 	for (auto Child : Children)
 	{
-		Child->PrintTree();
+		if (Child.IsValid())
+		{
+			Child->PrintTree();
+		}
 	}
 }
 
@@ -318,9 +537,9 @@ FGameplayTag UAssetTagTreeNode::GetNextTag(const FGameplayTag& SearchedTag)
 		return {};
 	}
 
-	if (NodeTag.MatchesTagExact(SearchedTag))
+	if (SearchedTag.MatchesTagExact(NodeTag))
 	{
-		return SearchedTag;
+		return NodeTag;
 	}
 
 	FString FollowingTags = SearchedTag.GetTagName().ToString().Mid(NodeTag.GetTagName().ToString().Len() + 1);
@@ -334,6 +553,11 @@ FGameplayTag UAssetTagTreeNode::GetNextTag(const FGameplayTag& SearchedTag)
 	}
 
 	return FGameplayTag::RequestGameplayTag(FName(NextTag));
+}
+
+FPrimaryAssetId UAssetTagTreeNode::GetPrimaryAssetId() const
+{
+	return FPrimaryAssetId(RootTagType, *GetName());
 }
 
 FSubTreeUpdatedDelegate& UAssetTagTreeNode::GetOnSubTreeUpdatedDelegate()

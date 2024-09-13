@@ -8,9 +8,6 @@
 #include "UObject/Object.h"
 #include "AssetTagTreeSubsystem.generated.h"
 
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(AssetTagTree);
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(AssetTagTree_A_1)
-
 UENUM()
 enum EBroadCastTagStrategy : uint8
 {
@@ -28,21 +25,27 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 	GENERATED_BODY()
 
 	UPROPERTY()
-	UAssetTagTreeNode *RootNode;
+	TArray<UAssetTagTreeNode*> RootNodes;
 
-	static FGameplayTagContainer FilterTags(const FGameplayTagContainer &Tags);
+	UPROPERTY()
+	FGameplayTagContainer RootTags;
 
-public:
-	inline static const FGameplayTag ASTT_ROOT_TAG = FGameplayTag::RequestGameplayTag("AssetTagTree");
+	FGameplayTagContainer FilterTags(const FGameplayTagContainer &Tags);
+	const FGameplayTagContainer& GetRootTags() const;
+	void FindNodesWithTags(const FGameplayTagContainer& Tags, TArray<UAssetTagTreeNode*>& Nodes);
 	
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void Deinitialize() override;
-
+public:
 	UFUNCTION(BlueprintCallable)
 	void RegisterCallbackOnNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveCallbackFromNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+
+	UFUNCTION()
+	void RegisterRootNode(UAssetTagTreeNode* RootNode);
+
+	UFUNCTION()
+	void RemoveRootNode(UAssetTagTreeNode* RootNode);
 
 	UFUNCTION(BlueprintCallable)
 	void InsertObjectToTag(UObject* InsertedObject, const FGameplayTag &Tag);
@@ -58,5 +61,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(FGameplayTagContainer &TargetTags, EBroadCastTagStrategy TagCollectionStrategy);
-	
+
+	UFUNCTION()
+	static void PersistChanges(UAssetTagTreeNode* RootNode);
 };

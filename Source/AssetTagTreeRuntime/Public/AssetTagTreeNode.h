@@ -15,35 +15,45 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
-	friend UCollectTagsAndChildrenStrategy;
-
-	UAssetTagTreeNode();
-	UAssetTagTreeNode(FGameplayTag Tag);
-
 	UPROPERTY()
 	FSubTreeUpdatedDelegate OnSubTreeUpdated;
 
 	UPROPERTY(EditAnywhere)
 	FGameplayTag NodeTag;
+	
+	UPROPERTY(EditAnywhere)
+	bool bIsRootNode = false;
+
+	UPROPERTY(VisibleAnywhere, meta=(AssetBundles = TreeBundle))
+	TArray<TWeakObjectPtr<UAssetTagTreeNode>> Children;
+
+	UPROPERTY(VisibleAnywhere)
+	TArray<TWeakObjectPtr<UObject>> Objects;
 
 	UPROPERTY()
-	TArray<UAssetTagTreeNode*> Children;
+	UPackage* RootPackage;
 
 	UPROPERTY()
-	TWeakObjectPtr<UAssetTagTreeNode> Parent;
+	FString RootPackageName;
 
 	UPROPERTY()
-	TArray<UObject*> Objects;
+	FGameplayTag ParentTag;
 
-	void SetTag(const FGameplayTag &Tag);
+	void SetParentTag(FGameplayTag NewParentTag);
 	void CreateMissingChildren(const FGameplayTagContainer& Tags);
-	void RemoveNode(const FGameplayTag &Tag);
-	void BroadcastUpdate() const;
-	void BroadcastUpdatesToChildren();
+	bool RemoveNode(const FGameplayTag& Tag);
+	void BroadcastUpdate();
 	FSubTreeUpdatedDelegate &GetTreeUpdateDelegate() { return this->OnSubTreeUpdated; }
-	FGameplayTag GetNextTag(const FGameplayTag &SearchedTag);
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+	
+	UFUNCTION()
+	FGameplayTag GetNextTag(const FGameplayTag &SearchedTag);
+	
+	UFUNCTION()
+	void SetTag(const FGameplayTag &Tag);
+	
 	UFUNCTION()
 	bool IsLeaf() const;
 
@@ -52,12 +62,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<UAssetTagTreeNode*> FindNodesByTags(const FGameplayTagContainer &Tags);
-	
-	UFUNCTION(BlueprintCallable)
-	TArray<UObject*> FindObjectsByTag(const FGameplayTag &Tag) const;
+	void SetRootPackageName(const FString& PackageName);
 
-	UFUNCTION(BlueprintCallable)
-	TArray<UObject*> FindObjectsByTags(const FGameplayTagContainer &Tags);
+	static FString BuildPackageObjectName(const FGameplayTag& NextTag);
+
+	UFUNCTION()
+	TArray<TWeakObjectPtr<UObject>> FindObjectsByTag(const FGameplayTag& Tag) const;
+
+	UFUNCTION()
+	TArray<TWeakObjectPtr<UObject>> FindObjectsByTags(const FGameplayTagContainer& Tags);
 
 	UFUNCTION(BlueprintCallable)
 	FGameplayTag GetTag() const;
@@ -66,16 +79,16 @@ public:
 	FSubTreeUpdatedDelegate &GetOnSubTreeUpdatedDelegate();
 
 	UFUNCTION()
-	void InsertToTag(UObject* NewAssetTagObject, const FGameplayTag &Tag);
+	bool InsertToTag(UObject* NewAssetTagObject, const FGameplayTag& Tag);
 
 	UFUNCTION()
-	void InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer &Tags);
+	bool InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags);
 
 	UFUNCTION()
-	void RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag &Tag);
+	bool RemoveObjectFromTag(UObject* OldAssetTagObject, const FGameplayTag& Tag);
 
 	UFUNCTION()
-	void RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer &Tags);
+	bool RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags);
 
 	UFUNCTION()
 	void CollectChildTagsOfTargetTags(const FGameplayTagContainer &TargetTags, FGameplayTagContainer &ChildTags);
@@ -85,4 +98,35 @@ public:
 
 	UFUNCTION()
 	void BroadcastUpdates(const FGameplayTagContainer &Tags);
+
+	UFUNCTION()
+	void Persist();
+
+	UFUNCTION()
+	void PersistOnTags(const FGameplayTagContainer& Tags);
+
+	UFUNCTION()
+	void PersistAll();
+
+	UFUNCTION()
+	bool IsRootNode() const;
+
+	UFUNCTION()
+	void InitializeRootNode();
+
+	UFUNCTION()
+	void SetRootPackage(UPackage* Package);
+
+	UFUNCTION()
+	void SetIsRootNode(bool value);
+
+	UFUNCTION()
+	void InsertChildNode(UAssetTagTreeNode* Node);
+
+	UFUNCTION()
+	bool IsAncestorOf(UAssetTagTreeNode* Node) const;
+
+	const FGameplayTag &GetParentTag() const;
+	UFUNCTION()
+	bool IsParentOf(UAssetTagTreeNode* Node) const;
 };

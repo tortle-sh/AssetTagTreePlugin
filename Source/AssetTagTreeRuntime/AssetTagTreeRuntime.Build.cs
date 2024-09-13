@@ -19,6 +19,7 @@ public class AssetTagTreeRuntime : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
+                "AssetRegistry",
                 "CoreUObject",
                 "Engine"
             }
