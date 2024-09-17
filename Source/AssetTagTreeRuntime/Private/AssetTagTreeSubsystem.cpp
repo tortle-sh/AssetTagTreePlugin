@@ -24,15 +24,15 @@ void UAssetTagTreeSubsystem::AddMissingRootNodes(const FGameplayTagContainer& Ta
 		{
 			TArray<FGameplayTag> ParentTags;
 			Tag.ParseParentTags(ParentTags);
-			
-			FGameplayTag ParentTag = ParentTags.Num() > 0 ? ParentTags[0] : Tag;
-			RootTags.AddTag(ParentTag);
+
+			FGameplayTag NewRootTag = ParentTags.IsEmpty() ? Tag : ParentTags[0];
+			RootTags.AddTag(NewRootTag);
 			
 			UAssetTagTreeNode* NewNode = NewObject<UAssetTagTreeNode>();
-			NewNode->SetTag(ParentTag);
+			NewNode->SetTag(NewRootTag);
 			this->RootNodes.Add(NewNode);
 			
-			UE_LOG(LogTemp, Display, TEXT("added %s to root nodes"), *ParentTag.GetTagName().ToString());
+			UE_LOG(LogTemp, Display, TEXT("added %s to root nodes"), *NewRootTag.GetTagName().ToString());
 		}
 	}
 }
