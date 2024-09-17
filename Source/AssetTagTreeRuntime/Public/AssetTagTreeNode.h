@@ -25,20 +25,21 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	UPROPERTY()
 	FGameplayTag NodeTag;
 
+private:
 	UPROPERTY()
 	TArray<UAssetTagTreeNode*> Children;
 
 	UPROPERTY()
 	TArray<TSoftObjectPtr<UObject>> Objects;
 
-	UFUNCTION()
-	void SetTag(const FGameplayTag &Tag);
-	
 	void CreateMissingChildren(const FGameplayTagContainer& Tags);
 	
 public:
 	UFUNCTION(BlueprintCallable)
 	bool IsLeaf() const;
+	
+	UFUNCTION()
+	void SetTag(const FGameplayTag &Tag);
 
 	UFUNCTION(BlueprintCallable)
 	TArray<TSoftObjectPtr<UObject>> FindAllObjectsByTags(const FGameplayTagContainer &Tags);

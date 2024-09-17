@@ -26,16 +26,15 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 	GENERATED_BODY()
 
 	UPROPERTY()
-	UAssetTagTreeNode *RootNode;
+	TArray<UAssetTagTreeNode*> RootNodes;
 
-	static FGameplayTagContainer FilterTags(const FGameplayTagContainer &Tags);
+	FGameplayTagContainer RootTags;
+
+	FGameplayTagContainer FilterTags(const FGameplayTagContainer &Tags) const;
+
+	void AddMissingRootNodes(const FGameplayTagContainer& Tags);
 
 public:
-	inline static const FGameplayTag ASTT_ROOT_TAG = FGameplayTag::RequestGameplayTag("AssetTagTree");
-	
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void Deinitialize() override;
-
 	TArray<TSoftObjectPtr<UObject>> FindObjectsWithTags(const FGameplayTagContainer& Tags) const;
 
 	UFUNCTION(BlueprintCallable)
@@ -55,5 +54,4 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(FGameplayTagContainer &TargetTags, EBroadCastTagStrategy TagCollectionStrategy);
-	
 };

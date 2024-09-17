@@ -7,85 +7,133 @@
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(AssetTagTree, "AssetTagTree", "Root of all AssetTagTree tags");
 
-FGameplayTagContainer UAssetTagTreeSubsystem::FilterTags(const FGameplayTagContainer& Tags)
+FGameplayTagContainer UAssetTagTreeSubsystem::FilterTags(const FGameplayTagContainer& Tags) const
 {
 	FGameplayTagContainer FilteredTags;
 	FilteredTags.AppendTags(Tags);
-	FilteredTags.RemoveTag(ASTT_ROOT_TAG);
+	FilteredTags.RemoveTags(RootTags);
 
 	return FilteredTags;
 }
 
-void UAssetTagTreeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+void UAssetTagTreeSubsystem::AddMissingRootNodes(const FGameplayTagContainer& Tags)
 {
-	Super::Initialize(Collection);
-	
-	RootNode = NewObject<UAssetTagTreeNode>();
-	RootNode->PrintTree();
-}
-
-void UAssetTagTreeSubsystem::Deinitialize()
-{
-	Super::Deinitialize();
+	for(auto Tag : Tags)
+	{
+		if(!Tag.MatchesAny(this->RootTags))
+		{
+			TArray<FGameplayTag> ParentTags;
+			Tag.ParseParentTags(ParentTags);
+			
+			FGameplayTag ParentTag = ParentTags.Num() > 0 ? ParentTags[0] : Tag;
+			RootTags.AddTag(ParentTag);
+			
+			UAssetTagTreeNode* NewNode = NewObject<UAssetTagTreeNode>();
+			NewNode->SetTag(ParentTag);
+			this->RootNodes.Add(NewNode);
+			
+			UE_LOG(LogTemp, Display, TEXT("added %s to root nodes"), *ParentTag.GetTagName().ToString());
+		}
+	}
 }
 
 TArray<TSoftObjectPtr<UObject>> UAssetTagTreeSubsystem::FindObjectsWithTags(const FGameplayTagContainer& Tags) const
 {
-	return this->RootNode->FindAllObjectsByTags(Tags);
+	TArray<TSoftObjectPtr<UObject>> ResultObjects;
+	for (auto Node : RootNodes)
+	{
+		ResultObjects.Append(Node->FindAllObjectsByTags(Tags));
+	}
+
+	return ResultObjects;
 }
 
-void UAssetTagTreeSubsystem::RegisterCallbackOnNodes(const FCallbackDelegate &CallbackDelegate, const FGameplayTagContainer &Tags)
+void UAssetTagTreeSubsystem::RegisterCallbackOnNodes(const FCallbackDelegate& CallbackDelegate,
+                                                     const FGameplayTagContainer& Tags)
 {
-	this->RootNode->RegisterCallbackOnTags(CallbackDelegate, FilterTags(Tags));
+	AddMissingRootNodes(Tags);
+	FGameplayTagContainer FilteredTags = FilterTags(Tags);
+	for (auto Node : RootNodes)
+	{
+		Node->RegisterCallbackOnTags(CallbackDelegate, FilteredTags);
+	}
 }
 
 void UAssetTagTreeSubsystem::RemoveCallbackFromNodes(const FCallbackDelegate& CallbackDelegate,
-	const FGameplayTagContainer& Tags)
+                                                     const FGameplayTagContainer& Tags)
 {
-	this->RootNode->RemoveCallbackFromTags(CallbackDelegate, FilterTags(Tags));
+	FGameplayTagContainer FilteredTags = FilterTags(Tags);
+	for (auto Node : RootNodes)
+	{
+		Node->RemoveCallbackFromTags(CallbackDelegate, FilteredTags);
+	}
 }
 
 void UAssetTagTreeSubsystem::AddTagsToNodeTree(const FGameplayTagContainer& Tags)
 {
-	RootNode->InsertToTags(nullptr, Tags);
+	AddMissingRootNodes(Tags);
+	for (auto Node : RootNodes)
+	{
+		Node->InsertToTags(nullptr, Tags);
+	}
 }
 
 void UAssetTagTreeSubsystem::InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer& Tags)
 {
-	this->RootNode->InsertToTags(InsertedObject, FilterTags(Tags));
+	AddMissingRootNodes(Tags);
+	FGameplayTagContainer FilteredTags = FilterTags(Tags);
+	for (auto Node : RootNodes)
+	{
+		Node->InsertToTags(InsertedObject, FilteredTags);
+	}
 }
 
 void UAssetTagTreeSubsystem::RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer& Tags)
 {
-	this->RootNode->RemoveObjectFromTags(RemovedObject, Tags);
+	const FGameplayTagContainer FilteredTags = FilterTags(Tags);
+	for (auto Node : RootNodes)
+	{
+		Node->RemoveObjectFromTags(RemovedObject, FilteredTags);
+	}
 }
 
-void UAssetTagTreeSubsystem::NotifySubscribers(FGameplayTagContainer& TargetTags, EBroadCastTagStrategy TagCollectionStrategy)
+void UAssetTagTreeSubsystem::NotifySubscribers(FGameplayTagContainer& TargetTags,
+                                               EBroadCastTagStrategy TagCollectionStrategy)
 {
-	TargetTags.RemoveTag(ASTT_ROOT_TAG);
-	
-	if(TargetTags.Num() > 0)
+	TargetTags.RemoveTags(RootTags);
+
+	if (TargetTags.Num() > 0)
 	{
 		FGameplayTagContainer BroadcastTags;
-		switch (TagCollectionStrategy) {
+		switch (TagCollectionStrategy)
+		{
 		case TAG_ONLY:
 			BroadcastTags.AppendTags(TargetTags);
 			break;
 		case TAG_AND_CHILDREN:
-			RootNode->CollectChildTagsOfTargetTags(TargetTags, BroadcastTags);
+			for (auto Node : RootNodes)
+			{
+				Node->CollectChildTagsOfTargetTags(TargetTags, BroadcastTags);
+			}
 			break;
 		case TAG_AND_PARENTS:
 			BroadcastTags.AppendTags(TargetTags);
 			UGameplayTagContainerUtils::CollectParentTags(TargetTags, BroadcastTags);
 			break;
 		case TAG_CHILDREN_AND_PARENT:
-			RootNode->CollectChildTagsOfTargetTags(TargetTags, BroadcastTags);
-			UGameplayTagContainerUtils::CollectParentTags(TargetTags, BroadcastTags);
+			for (auto Node : RootNodes)
+			{
+				Node->CollectChildTagsOfTargetTags(TargetTags, BroadcastTags);
+				UGameplayTagContainerUtils::CollectParentTags(TargetTags, BroadcastTags);
+			}
 			break;
 		}
-		
-		BroadcastTags.RemoveTag(ASTT_ROOT_TAG);
-		
-		this->RootNode->BroadcastUpdates(BroadcastTags);
+
+		BroadcastTags.RemoveTags(RootTags);
+
+		for (auto Node : RootNodes)
+		{
+			Node->BroadcastUpdates(BroadcastTags);
+		}
 	}
 }
