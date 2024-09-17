@@ -8,11 +8,14 @@
 void FGameplayTagObserver::InitializeObserver()
 {
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	Subsystem->AddTagsToNodeTree(this->TagContainer);
 	Subsystem->RegisterCallbackOnNodes(Callback, this->TagContainer);
 }
 
-void FGameplayTagObserver::DeinitializeObserver()
+void FGameplayTagObserver::DeinitalizeObserver()
 {
+	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	Subsystem->RemoveCallbackFromNodes(this->Callback, this->TagContainer);
 }
 
 bool FGameplayTagObserver::HaveTagsChanged(FPropertyChangedEvent& PropertyChangedEvent)
@@ -52,4 +55,10 @@ void FGameplayTagObserver::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	{
 		Subsystem->RemoveCallbackFromNodes(Callback, Data.RemovedTags);
 	}
+}
+
+TArray<TSoftObjectPtr<UObject>> FGameplayTagObserver::FindObservedObjects() const
+{
+	const UAssetTagTreeSubsystem *Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	return Subsystem->FindObjectsWithTags(this->TagContainer);
 }

@@ -1,10 +1,8 @@
 ﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 
 #include "GameplayTagSubject.h"
-#include "AssetTagTreePCH.h"
 
 #include "AssetTagTreeSubsystem.h"
-#include "AssetTagTreeRuntimeModule.h"
 #include "GameplayTagContainerUtils.h"
 
 void FGameplayTagSubject::PreEditChange()
@@ -29,6 +27,8 @@ void FGameplayTagSubject::InitializeSubject()
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
 	Subsystem->InsertObjectToTags(this->Parent, TagContainer);
 }
+
+
 
 void FGameplayTagSubject::DeinitializeSubject()
 {

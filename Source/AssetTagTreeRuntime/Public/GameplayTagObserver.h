@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AssetTagTreeSubsystem.h"
+#include "AssetTagTreeNode.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "GameplayTagObserver.generated.h"
@@ -20,14 +20,17 @@ struct ASSETTAGTREERUNTIME_API FGameplayTagObserver
 	FGameplayTagContainer TagContainer;
 	
 	UPROPERTY()
-	FTagTreeUpdateCallbackDelegate Callback;
+	FCallbackDelegate Callback;
 
 	FGameplayTagContainer PreChangeTagContainer;
 
 	void InitializeObserver();
-	void DeinitializeObserver();
+	void DeinitalizeObserver();
 
 	bool HaveTagsChanged(FPropertyChangedEvent& PropertyChangedEvent);
 	void PreEditChange();
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+
+	TArray<TSoftObjectPtr<UObject>> FindObservedObjects() const;
 };
+

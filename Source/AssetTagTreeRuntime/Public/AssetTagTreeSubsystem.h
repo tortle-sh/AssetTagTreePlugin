@@ -20,8 +20,6 @@ enum EBroadCastTagStrategy : uint8
 	TAG_CHILDREN_AND_PARENT
 };
 
-DECLARE_DYNAMIC_DELEGATE(FTagTreeUpdateCallbackDelegate);
-
 UCLASS()
 class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 {
@@ -38,20 +36,19 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	UFUNCTION(BlueprintCallable)
-	void RegisterCallbackOnNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+	TArray<TSoftObjectPtr<UObject>> FindObjectsWithTags(const FGameplayTagContainer& Tags) const;
 
 	UFUNCTION(BlueprintCallable)
-	void RemoveCallbackFromNodes(const FTagTreeUpdateCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+	void RegisterCallbackOnNodes(const FCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
 
 	UFUNCTION(BlueprintCallable)
-	void InsertObjectToTag(UObject* InsertedObject, const FGameplayTag &Tag);
+	void RemoveCallbackFromNodes(const FCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+
+	UFUNCTION(BlueprintCallable)
+	void AddTagsToNodeTree(const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
 	void InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer &Tags);
-
-	UFUNCTION(BlueprintCallable)
-	void RemoveObjectFromTag(UObject* RemovedObject, const FGameplayTag &Tag);
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer &Tags);
