@@ -22,8 +22,10 @@ FGameplayTagContainerChangeData UGameplayTagContainerUtils::GetChangeData(
 void UGameplayTagContainerUtils::CollectParentTags(const FGameplayTagContainer& TargetTags,
 	FGameplayTagContainer& ParentTags)
 {
+	TArray<FGameplayTag> TempParentTags;
 	for(auto Tag : TargetTags)
 	{
-		ParentTags.AppendTags(Tag.GetGameplayTagParents());
+		Tag.ParseParentTags(TempParentTags);
 	}
+	ParentTags.AppendTags(FGameplayTagContainer::CreateFromArray(TempParentTags));
 }

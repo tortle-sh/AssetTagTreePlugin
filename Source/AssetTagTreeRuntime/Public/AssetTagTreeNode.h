@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AssetTagTreeConstants.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "AssetTagTreeNode.generated.h"
@@ -16,18 +15,14 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 {
 	GENERATED_BODY()
 
-	UAssetTagTreeNode();
-	UAssetTagTreeNode(FGameplayTag Tag);
-
 	UPROPERTY()
 	FSubTreeUpdatedDelegate OnSubTreeUpdated;
 
 	UPROPERTY()
 	FGameplayTag NodeTag;
 
-private:
 	UPROPERTY()
-	TArray<UAssetTagTreeNode*> Children;
+	TArray<UAssetTagTreeNode*> ChildNodes;
 
 	UPROPERTY()
 	TArray<TSoftObjectPtr<UObject>> Objects;
@@ -35,14 +30,11 @@ private:
 	void CreateMissingChildren(const FGameplayTagContainer& Tags);
 	
 public:
-	UFUNCTION(BlueprintCallable)
-	bool IsLeaf() const;
-	
 	UFUNCTION()
 	void SetTag(const FGameplayTag &Tag);
 
-	UFUNCTION(BlueprintCallable)
-	TArray<TSoftObjectPtr<UObject>> FindAllObjectsByTags(const FGameplayTagContainer &Tags);
+	TSet<TSoftObjectPtr<UObject>> FindObjectsByTags(const FGameplayTagContainer& Tags, int32 CollectObjectsFrom, bool bIsRootTag = false);
+	TSet<TSoftObjectPtr<UObject>> FindObjectsFromChildren(const bool bIsFirst = false);
 
 	TArray<UAssetTagTreeNode*> FindAllNodesByTags(const FGameplayTagContainer &Tags);
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AssetTagTreeSubsystem.h"
+#include "AssetTagTreeConstants.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "GameplayTagSubject.generated.h"
@@ -16,18 +16,18 @@ struct ASSETTAGTREERUNTIME_API FGameplayTagSubject
 	UPROPERTY()
 	UObject* Parent;
 
-	UPROPERTY(EditAnywhere)
-	TEnumAsByte<EBroadCastTagStrategy> BroadcastStrategy;
+	UPROPERTY(EditAnywhere, meta=(Bitmask, BitmaskEnum = "/Scripts/AssetTagTreeRuntime.ETagCollectionFlag"))
+	int32 BroadcastTo;
 	
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer TagContainer;
 	
 	FGameplayTagContainer PreChangeTagContainer;
 
-	void InitializeSubject();
-	void DeinitializeSubject();
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	void InitializeSubject() const;
+	void DeinitializeSubject() const;
+	void PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent) const;
 	void PreEditChange();
 
-	static bool HaveTagsChanged(FPropertyChangedEvent& PropertyChangedEvent);
+	static bool HaveTagsChanged(const FPropertyChangedEvent& PropertyChangedEvent);
 };

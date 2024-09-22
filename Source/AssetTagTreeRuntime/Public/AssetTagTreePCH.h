@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2024 tortle-sh All Rights Reserved
 #pragma once
 
+#include "AssetTagTreeConstants.h"
 #include "AssetTagTreeNode.h"
 #include "GameplayTagObserver.h"
 #include "GameplayTagSubject.h"

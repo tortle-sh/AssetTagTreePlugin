@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AssetTagTreeConstants.h"
 #include "AssetTagTreeNode.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
@@ -13,8 +14,8 @@ struct ASSETTAGTREERUNTIME_API FGameplayTagObserver
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	UObject* Parent;
+	UPROPERTY(EditAnywhere, meta=(Bitmask, BitmaskEnum = "/Script/AssetTagTreeRuntime.ETagCollectionFlag"))
+	int32 CollectObjectsFrom;
 
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer TagContainer;
@@ -24,13 +25,13 @@ struct ASSETTAGTREERUNTIME_API FGameplayTagObserver
 
 	FGameplayTagContainer PreChangeTagContainer;
 
-	void InitializeObserver();
-	void DeinitalizeObserver();
+	void InitializeObserver() const;
+	void DeinitializeObserver() const;
 
-	bool HaveTagsChanged(FPropertyChangedEvent& PropertyChangedEvent);
 	void PreEditChange();
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	void OnTagChanges() const;
+	void PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent) const;
 
-	TArray<TSoftObjectPtr<UObject>> FindObservedObjects() const;
+	TSet<TSoftObjectPtr<UObject>> FindObservedObjects() const;
 };
 

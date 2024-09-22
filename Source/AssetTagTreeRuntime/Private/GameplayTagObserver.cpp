@@ -2,26 +2,33 @@
 
 #include "GameplayTagObserver.h"
 
+#include "AssetTagTreePCH.h"
 #include "AssetTagTreeSubsystem.h"
 #include "GameplayTagContainerUtils.h"
 
-void FGameplayTagObserver::InitializeObserver()
+void FGameplayTagObserver::InitializeObserver() const
 {
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	if(!Subsystem)
+	{
+		LOG_WARNING("AssetTagTreeSubsystem is not initialized!");
+		return;
+	}
+	
 	Subsystem->AddTagsToNodeTree(this->TagContainer);
 	Subsystem->RegisterCallbackOnNodes(Callback, this->TagContainer);
 }
 
-void FGameplayTagObserver::DeinitalizeObserver()
+void FGameplayTagObserver::DeinitializeObserver() const
 {
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	if(!Subsystem)
+	{
+		LOG_WARNING("AssetTagTreeSubsystem is not initialized!");
+		return;
+	}
+	
 	Subsystem->RemoveCallbackFromNodes(this->Callback, this->TagContainer);
-}
-
-bool FGameplayTagObserver::HaveTagsChanged(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	return PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(
-		FGameplayTagObserver, TagContainer);
 }
 
 void FGameplayTagObserver::PreEditChange()
@@ -30,35 +37,50 @@ void FGameplayTagObserver::PreEditChange()
 	this->PreChangeTagContainer.AppendTags(TagContainer);
 }
 
-void FGameplayTagObserver::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void FGameplayTagObserver::OnTagChanges() const
 {
-	if(!HaveTagsChanged(PropertyChangedEvent))
-	{
-		return;
-	}
-
-	FGameplayTagContainerChangeData Data = UGameplayTagContainerUtils::GetChangeData(
+	const auto [InsertedTags, RemovedTags, AllTags] = UGameplayTagContainerUtils::GetChangeData(
 		this->PreChangeTagContainer, this->TagContainer);
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
 
 	if(!Subsystem)
 	{
+		LOG_WARNING("AssetTagTreeSubsystem is not initialized!");
 		return;
 	}
 
-	if(Data.InsertedTags.Num() > 0)
+	if(!InsertedTags.IsEmpty())
 	{
-		Subsystem->RegisterCallbackOnNodes(Callback, Data.InsertedTags);
+		Subsystem->RegisterCallbackOnNodes(Callback, InsertedTags);
 	}
 
-	if(Data.RemovedTags.Num() > 0)
+	if(!RemovedTags.IsEmpty())
 	{
-		Subsystem->RemoveCallbackFromNodes(Callback, Data.RemovedTags);
+		Subsystem->RemoveCallbackFromNodes(Callback, RemovedTags);
 	}
 }
 
-TArray<TSoftObjectPtr<UObject>> FGameplayTagObserver::FindObservedObjects() const
+void FGameplayTagObserver::PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent) const
+{
+	if(PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGameplayTagObserver, TagContainer))
+	{
+		OnTagChanges();
+	}
+
+	if(PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FGameplayTagObserver, CollectObjectsFrom))
+	{
+		Callback.Execute();
+	}
+}
+
+TSet<TSoftObjectPtr<UObject>> FGameplayTagObserver::FindObservedObjects() const
 {
 	const UAssetTagTreeSubsystem *Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
-	return Subsystem->FindObjectsWithTags(this->TagContainer);
+	if(!Subsystem)
+	{
+		LOG_WARNING("AssetTagTreeSubsystem is not initialized!");
+		return {};
+	}
+	
+	return Subsystem->FindObjects(this->TagContainer, CollectObjectsFrom);
 }
