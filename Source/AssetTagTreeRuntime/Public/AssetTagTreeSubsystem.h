@@ -37,8 +37,8 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeSubsystem : public UEngineSubsystem
 	void AddMissingRootNodes(const FGameplayTagContainer& Tags);
 
 public:
-	TSet<TSoftObjectPtr<UObject>> FindObjects(const FGameplayTagContainer& Tags,
-	 	UPARAM(meta = (BitMask, BitMaskEnum = "/Script/AssetTagTreeRuntime.ETagCollectionFlag")) const int32 CollectionFlags) const;
+	TArray<TSoftObjectPtr<UObject>> FindObjects( const FGameplayTagContainer& Tags,
+		UPARAM(meta = (BitMask, BitMaskEnum = ETagCollectionFlag)) const int32 CollectionFlags) const;
 
 	UFUNCTION(BlueprintCallable)
 	void RegisterCallbackOnNodes(const FCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
@@ -61,5 +61,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(const FGameplayTagContainer& TargetTags,
-		UPARAM(meta=(Bitmask, BitmaskEnum = "/Script/AssetTagTreeRuntime.ETagCollectionFlag")) const int32 TagCollectionFlags);
+	                       UPARAM(meta=(Bitmask, BitmaskEnum = "/Script/AssetTagTreeRuntime.ETagCollectionFlag")) int32 TagCollectionFlags, EBroadcastType
+	                       BroadcastType, TSoftObjectPtr<UObject> ModifiedObject);
 };

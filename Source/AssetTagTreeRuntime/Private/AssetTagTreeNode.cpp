@@ -3,19 +3,20 @@
 
 #include "AssetTagTreeNode.h"
 
-#include "AssetTagTreePCH.h"
 #include "AssetTagTreeSubsystem.h"
+#include "common/AssetTagTreePCH.h"
+#include "common/AssetTagTreeUtils.h"
 
-TSet<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags,
-                                                                   const int32 CollectObjectsFrom,
-                                                                   const bool bIsRootTag)
+TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags,
+                                                                     const int32 CollectObjectsFrom,
+                                                                     const bool bIsRootTag)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
 		return {};
 	}
 
-	TSet<TSoftObjectPtr<UObject>> Results = {};
+	TArray<TSoftObjectPtr<UObject>> Results = {};
 	if(Tags.HasTagExact(NodeTag))
 	{
 		if(!bIsRootTag || CollectObjectsFrom & RootNode)
@@ -44,9 +45,9 @@ TSet<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGamepl
 	return Results;
 }
 
-TSet<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsFromChildren(const bool bIsFirst)
+TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsFromChildren(const bool bIsFirst)
 {
-	TSet<TSoftObjectPtr<UObject>> Results;
+	TArray<TSoftObjectPtr<UObject>> Results;
 	if(!bIsFirst)
 	{
 		Results.Append(Objects);
@@ -213,13 +214,13 @@ void UAssetTagTreeNode::CollectChildTags(FGameplayTagContainer& ChildTags)
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdate() const
+void UAssetTagTreeNode::BroadcastUpdate(const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject) const
 {
-	LOG_INFO("Broadcast from: %s", *NodeTag.GetTagName().ToString());
-	OnSubTreeUpdated.Broadcast();
+	LOG_INFO("%s Type Broadcast from: %s", *UAssetTagTreeUtils::BroadcastTypeToString(BroadcastType), *NodeTag.GetTagName().ToString());
+	OnSubTreeUpdated.Broadcast(BroadcastType, ChangedObject);
 }
 
-void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags)
+void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags, const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -228,21 +229,21 @@ void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags)
 
 	if (Tags.HasTagExact(NodeTag))
 	{
-		BroadcastUpdate();
+		BroadcastUpdate(BroadcastType, ChangedObject);
 	}
 
 	for (const auto Child : ChildNodes)
 	{
-		Child->BroadcastUpdates(Tags);
+		Child->BroadcastUpdates(Tags, BroadcastType, ChangedObject);
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdatesToChildren()
+void UAssetTagTreeNode::BroadcastUpdatesToChildren(const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject)
 {
 	for (const auto Child : ChildNodes)
 	{
-		Child->BroadcastUpdate();
-		Child->BroadcastUpdatesToChildren();
+		Child->BroadcastUpdate(BroadcastType, ChangedObject);
+		Child->BroadcastUpdatesToChildren(BroadcastType, ChangedObject);
 	}
 }
 

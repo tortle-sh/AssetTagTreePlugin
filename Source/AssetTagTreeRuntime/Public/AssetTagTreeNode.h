@@ -7,8 +7,15 @@
 #include "UObject/Object.h"
 #include "AssetTagTreeNode.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSubTreeUpdatedDelegate);
-DECLARE_DYNAMIC_DELEGATE(FCallbackDelegate);
+UENUM()
+enum EBroadcastType
+{
+	Inserted,
+	Removed
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSubTreeUpdatedDelegate, EBroadcastType, BroadcastType, TSoftObjectPtr<UObject>, ChangedObject);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FCallbackDelegate, const EBroadcastType, BroadcastType, const TSoftObjectPtr<UObject>&, ChangedObject);
 
 UCLASS(BlueprintType)
 class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
@@ -33,8 +40,9 @@ public:
 	UFUNCTION()
 	void SetTag(const FGameplayTag &Tag);
 
-	TSet<TSoftObjectPtr<UObject>> FindObjectsByTags(const FGameplayTagContainer& Tags, int32 CollectObjectsFrom, bool bIsRootTag = false);
-	TSet<TSoftObjectPtr<UObject>> FindObjectsFromChildren(const bool bIsFirst = false);
+	TArray<TSoftObjectPtr<UObject>> FindObjectsByTags(const FGameplayTagContainer& Tags, int32 CollectObjectsFrom,
+	                                                  bool bIsRootTag = false);
+	TArray<TSoftObjectPtr<UObject>> FindObjectsFromChildren(const bool bIsFirst = false);
 
 	TArray<UAssetTagTreeNode*> FindAllNodesByTags(const FGameplayTagContainer &Tags);
 
@@ -47,11 +55,11 @@ public:
 
 	void CollectChildTags(FGameplayTagContainer &ChildTags);
 
-	void BroadcastUpdate() const;
+	void BroadcastUpdate(EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject) const;
 
-	void BroadcastUpdates(const FGameplayTagContainer &Tags);
+	void BroadcastUpdates(const FGameplayTagContainer& Tags, EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject);
 
-	void BroadcastUpdatesToChildren();
+	void BroadcastUpdatesToChildren(EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject);
 
 	UFUNCTION()
 	FSubTreeUpdatedDelegate &GetTreeUpdateDelegate() { return this->OnSubTreeUpdated; }

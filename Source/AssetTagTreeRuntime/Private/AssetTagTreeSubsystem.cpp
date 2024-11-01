@@ -3,7 +3,7 @@
 
 #include "AssetTagTreeSubsystem.h"
 
-#include "GameplayTagContainerUtils.h"
+#include "common/AssetTagTreeUtils.h"
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(AssetTagTree, "AssetTagTree", "Root of all AssetTagTree tags");
 
@@ -25,7 +25,7 @@ void UAssetTagTreeSubsystem::AddMissingRootNodes(const FGameplayTagContainer& Ta
 			TArray<FGameplayTag> ParentTags;
 			Tag.ParseParentTags(ParentTags);
 
-			FGameplayTag NewRootTag = ParentTags.IsEmpty() ? Tag : ParentTags[0];
+			FGameplayTag NewRootTag = ParentTags.IsEmpty() ? Tag : ParentTags.Last();
 			RootTags.AddTag(NewRootTag);
 			
 			UAssetTagTreeNode* NewNode = NewObject<UAssetTagTreeNode>();
@@ -37,10 +37,10 @@ void UAssetTagTreeSubsystem::AddMissingRootNodes(const FGameplayTagContainer& Ta
 	}
 }
 
-TSet<TSoftObjectPtr<UObject>> UAssetTagTreeSubsystem::FindObjects(const FGameplayTagContainer& Tags,
-                                                                        const int32 CollectionFlags) const
+TArray<TSoftObjectPtr<UObject>> UAssetTagTreeSubsystem::FindObjects(const FGameplayTagContainer& Tags,
+                                                                    const int32 CollectionFlags) const
 {
-	TSet<TSoftObjectPtr<UObject>> ResultObjects;
+	TArray<TSoftObjectPtr<UObject>> ResultObjects;
 	for (const auto Node : RootNodes)
 	{
 		ResultObjects.Append(Node->FindObjectsByTags(Tags, CollectionFlags, true));
@@ -112,7 +112,7 @@ void UAssetTagTreeSubsystem::CollectTags(const FGameplayTagContainer& TargetTags
 		
 	if(TagCollectionFlags & Parents)
 	{
-		UGameplayTagContainerUtils::CollectParentTags(TargetTagsCopy, CollectedTags);
+		UAssetTagTreeUtils::CollectParentTags(TargetTagsCopy, CollectedTags);
 
 		if(!(TagCollectionFlags & RootNode))
 		{
@@ -127,17 +127,20 @@ void UAssetTagTreeSubsystem::CollectTags(const FGameplayTagContainer& TargetTags
 			Node->CollectChildTagsOfTargetTags(TargetTagsCopy, CollectedTags);
 		}
 	}
-
-	
 }
 
-void UAssetTagTreeSubsystem::NotifySubscribers(const FGameplayTagContainer& TargetTags, const int32 TagCollectionFlags)
+void UAssetTagTreeSubsystem::NotifySubscribers(
+	const FGameplayTagContainer& TargetTags,
+	const int32 TagCollectionFlags,
+	const EBroadcastType BroadcastType,
+	const TSoftObjectPtr<UObject> ModifiedObject
+	)
 {
 	FGameplayTagContainer BroadcastTags;
 	CollectTags(TargetTags, TagCollectionFlags, BroadcastTags);
 
 	for (const auto Node : RootNodes)
 	{
-		Node->BroadcastUpdates(BroadcastTags);
+		Node->BroadcastUpdates(BroadcastTags, BroadcastType, ModifiedObject);
 	}
 }
