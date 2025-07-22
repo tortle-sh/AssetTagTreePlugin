@@ -8,13 +8,13 @@
 
 void FAssetTagObserver::AddObject(const TSoftObjectPtr<UObject>& Object)
 {
-	if(!Object.Get()->GetClass()->IsChildOf(FilteredClass))
+	if (!Object.Get()->GetClass()->IsChildOf(FilteredClass))
 	{
 		return;
 	}
-	
+
 	int32* Entry = ObservedObjects.Find(Object);
-	if(Entry == nullptr)
+	if (Entry == nullptr)
 	{
 		ObservedObjects.Emplace(Object, 1);
 		return;
@@ -26,13 +26,13 @@ void FAssetTagObserver::AddObject(const TSoftObjectPtr<UObject>& Object)
 void FAssetTagObserver::RemoveObject(const TSoftObjectPtr<UObject>& Object)
 {
 	int32* Entry = ObservedObjects.Find(Object);
-	if(Entry == nullptr)
+	if (Entry == nullptr)
 	{
 		return;
 	}
 
 	*Entry = *Entry - 1;
-	if(*Entry < 1)
+	if (*Entry < 1)
 	{
 		ObservedObjects.Remove(Object);
 	}
@@ -49,6 +49,7 @@ void FAssetTagObserver::InitializeObserver() const
 
 	Subsystem->AddTagsToNodeTree(this->TagContainer);
 	Subsystem->RegisterCallbackOnNodes(OnSubscribedNodesUpdated, this->TagContainer);
+
 }
 
 void FAssetTagObserver::DeinitializeObserver() const
@@ -61,6 +62,21 @@ void FAssetTagObserver::DeinitializeObserver() const
 	}
 
 	Subsystem->RemoveCallbackFromNodes(this->OnSubscribedNodesUpdated, this->TagContainer);
+}
+
+bool FAssetTagObserver::Validate()
+{
+	// validate graph integrity to handle merge conflicts
+	const uint32 InitialHash = CollectionHash;
+	LoadHashesForTags();
+	UpdateCollectionHash();
+	if (InitialHash != CollectionHash)
+	{
+		LoadObservedObjects();
+		return false;
+	}
+
+	return true;
 }
 
 void FAssetTagObserver::PreEditChange()
@@ -89,8 +105,15 @@ void FAssetTagObserver::OnTagChanges()
 	if (!RemovedTags.IsEmpty())
 	{
 		Subsystem->RemoveCallbackFromNodes(OnSubscribedNodesUpdated, RemovedTags);
+		for (auto const Tag : InsertedTags)
+		{
+			NodeHashes.Remove(Tag);
+		}
 	}
 
+	LoadHashesForTags();
+	UpdateCollectionHash();
+	
 	LoadObservedObjects();
 }
 
@@ -102,16 +125,37 @@ void FAssetTagObserver::PostEditChangeProperty(const FPropertyChangedEvent& Prop
 		return;
 	}
 
-	if(PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FAssetTagObserver, CollectObjectsFrom))
+	if (PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FAssetTagObserver, CollectObjectsFrom))
 	{
 		LoadObservedObjects();
 		return;
 	}
 
-	if(PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FAssetTagObserver, FilteredClass))
+	if (PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(FAssetTagObserver, FilteredClass))
 	{
 		LoadObservedObjects();
 		return;
+	}
+}
+
+void FAssetTagObserver::LoadHashesForTags()
+{
+	const UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
+	if (!Subsystem)
+	{
+		LOG_ERROR("AssetTagTreeSubsystem is not initialized!");
+		exit(1);
+	}
+
+	NodeHashes.Empty();
+	Subsystem->CollectNodeHashes(this->NodeHashes, this->TagContainer, this->CollectObjectsFrom);
+}
+
+void FAssetTagObserver::UpdateCollectionHash()
+{
+	for (const auto Hash : NodeHashes)
+	{
+		CollectionHash = HashCombine(CollectionHash, Hash.Value);
 	}
 }
 
@@ -129,20 +173,23 @@ TArray<TSoftObjectPtr<UObject>> FAssetTagObserver::FindObservedObjects() const
 
 void FAssetTagObserver::LoadObservedObjects()
 {
-		ObservedObjects.Empty();
-		for( const auto Object: FindObservedObjects())
-		{
-			AddObject(Object);
-		}
-		
-		if(!OnObservedObjectsChanged.ExecuteIfBound())
-		{
-			LOG_WARNING("OnObservedObjectsChanged is not bound");
-		}
+	ObservedObjects.Empty();
+	for (const auto Object : FindObservedObjects())
+	{
+		AddObject(Object);
+	}
+
+	if (!OnObservedObjectsChanged.ExecuteIfBound())
+	{
+		LOG_WARNING("OnObservedObjectsChanged is not bound");
+	}
 }
 
-void FAssetTagObserver::OnCallbackUpdateObservedObjects(const EBroadcastType BroadcastType,
-                                                        const TSoftObjectPtr<UObject>& UpdatedObject)
+void FAssetTagObserver::OnCallbackUpdateObservedObjects(
+	const EBroadcastType BroadcastType,
+	const TSoftObjectPtr<UObject>& UpdatedObject,
+	const FGameplayTag& UpdatedTag,
+	uint32 NodeHash)
 {
 	switch (BroadcastType)
 	{
@@ -155,12 +202,13 @@ void FAssetTagObserver::OnCallbackUpdateObservedObjects(const EBroadcastType Bro
 	default:
 		LOG_ERROR("Unknown BroadcastType");
 		exit(1);
-		
 	}
 	
-	if(!OnObservedObjectsChanged.ExecuteIfBound())
+	NodeHashes.Emplace(UpdatedTag, NodeHash);
+	UpdateCollectionHash();
+
+	if (!OnObservedObjectsChanged.ExecuteIfBound())
 	{
 		LOG_WARNING("OnObservedObjectsChanged is not bound");
 	}
 }
-

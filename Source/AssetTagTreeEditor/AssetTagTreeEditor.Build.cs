@@ -10,6 +10,7 @@ public class AssetTagTreeEditor : ModuleRules
             new string[]
             {
                 "Core",
+                "AssetTagTreeRuntime"
             }
         );
 
@@ -19,7 +20,8 @@ public class AssetTagTreeEditor : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "Slate",
-                "SlateCore"
+                "SlateCore",
+                "EditorSubsystem"
             }
         );
     }

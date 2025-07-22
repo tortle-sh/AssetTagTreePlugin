@@ -14,8 +14,19 @@ enum EBroadcastType
 	Removed
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSubTreeUpdatedDelegate, EBroadcastType, BroadcastType, TSoftObjectPtr<UObject>, ChangedObject);
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FCallbackDelegate, const EBroadcastType, BroadcastType, const TSoftObjectPtr<UObject>&, ChangedObject);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(
+	FSubTreeUpdatedDelegate,
+	EBroadcastType, BroadcastType,
+	TSoftObjectPtr<UObject>, ChangedObject,
+	const FGameplayTag&, ChangedTag,
+	uint32,  TagHash);
+
+DECLARE_DYNAMIC_DELEGATE_FourParams(
+	FCallbackDelegate,
+	const EBroadcastType, BroadcastType,
+	const TSoftObjectPtr<UObject>&, ChangedObject,
+	const FGameplayTag&, ChangedTag,
+	uint32,  TagHash);
 
 UCLASS(BlueprintType)
 class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
@@ -34,8 +45,13 @@ class ASSETTAGTREERUNTIME_API UAssetTagTreeNode : public UObject
 	UPROPERTY()
 	TArray<TSoftObjectPtr<UObject>> Objects;
 
+	TSet<FGuid> SubjectIds;
+
+	uint32 NodeHash;
+
 	void CreateMissingChildren(const FGameplayTagContainer& Tags);
-	
+	void UpdateNodeHash();
+
 public:
 	UFUNCTION()
 	void SetTag(const FGameplayTag &Tag);
@@ -47,9 +63,9 @@ public:
 	TArray<UAssetTagTreeNode*> FindAllNodesByTags(const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
-	void InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer &Tags);
+	void InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags, const FGuid& SubjectId);
 	
-	void RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer &Tags);
+	void RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags, const FGuid& SubjectId);
 
 	void CollectChildTagsOfTargetTags(const FGameplayTagContainer &TargetTags, FGameplayTagContainer &ChildTags);
 
@@ -78,4 +94,9 @@ public:
 
 	UFUNCTION()
 	void RemoveCallbackFromTags(const FCallbackDelegate& CallbackDelegate, const FGameplayTagContainer& Tags);
+
+	[[nodiscard]] uint32 GetNodeHash() const
+	{
+		return NodeHash;
+	}
 };

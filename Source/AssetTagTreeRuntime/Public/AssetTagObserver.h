@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AssetTagTreeConstants.h"
 #include "AssetTagTreeNode.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
@@ -39,22 +38,31 @@ struct ASSETTAGTREERUNTIME_API FAssetTagObserver
 
 	FGameplayTagContainer PreChangeTagContainer;
 
+	UPROPERTY(VisibleAnywhere)
+	TMap<FGameplayTag, uint32> NodeHashes;
+
+	UPROPERTY(VisibleAnywhere)
+	uint32 CollectionHash;
+
 	void AddObject(const TSoftObjectPtr<UObject>& Object);
 	void RemoveObject(const TSoftObjectPtr<UObject>& Object);
 
 	void InitializeObserver() const;
 	void DeinitializeObserver() const;
+	bool Validate();
 
 	void PreEditChange();
 	void OnTagChanges();
 	void PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent);
+	void LoadHashesForTags();
+	void UpdateCollectionHash();
 
 	TArray<TSoftObjectPtr<UObject>> FindObservedObjects() const;
 	void LoadObservedObjects();
 
-	void OnCallbackUpdateObservedObjects(const EBroadcastType BroadcastType,
-	                                     const TSoftObjectPtr<UObject>& UpdatedObject);
-
+	void OnCallbackUpdateObservedObjects(
+		EBroadcastType BroadcastType,
+		const TSoftObjectPtr<UObject>& UpdatedObject, const FGameplayTag& UpdatedTag, uint32 NodeHash);
 	template <class T>
 	TArray<TSoftObjectPtr<T>> GetObservedObjects() const;
 };

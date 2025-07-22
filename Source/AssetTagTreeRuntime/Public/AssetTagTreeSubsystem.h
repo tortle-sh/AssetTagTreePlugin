@@ -50,14 +50,17 @@ public:
 	void AddTagsToNodeTree(const FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable)
-	void InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer &Tags);
+	void InsertObjectToTags(UObject* InsertedObject, const FGameplayTagContainer& Tags, const FGuid& SubjectId);
+
+	UFUNCTION()
+	void CollectNodeHashes(TMap<FGameplayTag, uint32>& NodeHashCollection, const FGameplayTagContainer& Tags,
+	                         int32 TagCollectionFlags) const;
 
 	UFUNCTION(BlueprintCallable)
-	void RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer &Tags);
+	void RemoveObjectFromTags(UObject* RemovedObject, const FGameplayTagContainer& Tags, const FGuid& SubjectId);
 	void CollectTags(const FGameplayTagContainer& TargetTags,
 		UPARAM(meta = (Bitmask, BitmaskEnum = "/Script/AssetTagTreeRuntime.ETagCollectionFlag")) const int32 TagCollectionFlags,
-		
-		FGameplayTagContainer& CollectedTags);
+		FGameplayTagContainer& CollectedTags) const;
 
 	UFUNCTION(BlueprintCallable)
 	void NotifySubscribers(const FGameplayTagContainer& TargetTags,

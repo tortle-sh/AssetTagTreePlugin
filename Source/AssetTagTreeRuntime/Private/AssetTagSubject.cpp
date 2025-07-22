@@ -17,8 +17,18 @@ bool FAssetTagSubject::HaveTagsChanged(const FPropertyChangedEvent& PropertyChan
 	return PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED( FAssetTagSubject, TagContainer);
 }
 
-void FAssetTagSubject::InitializeSubject() const
+void FAssetTagSubject::InitializeSubject(UObject* Subject, uint8 BroadcastStrategy)
 {
+	if (!Initialized)
+	{
+		ParentObject = Subject;
+		BroadcastTo = BroadcastStrategy;
+		TagContainer = {};
+		PreChangeTagContainer = {};
+		SubjectId = FGuid::NewGuid();
+		this->Initialized = true;
+	}
+	
 	if (TagContainer.IsEmpty())
 	{
 		return;
@@ -31,7 +41,7 @@ void FAssetTagSubject::InitializeSubject() const
 		return;
 	}
 
-	Subsystem->InsertObjectToTags(this->ParentObject, TagContainer);
+	Subsystem->InsertObjectToTags(this->ParentObject, TagContainer, SubjectId);
 }
 
 
@@ -45,7 +55,7 @@ void FAssetTagSubject::DeinitializeSubject() const
 		return;
 	}
 
-	Subsystem->RemoveObjectFromTags(this->ParentObject, this->TagContainer);
+	Subsystem->RemoveObjectFromTags(this->ParentObject, this->TagContainer, SubjectId);
 	Subsystem->NotifySubscribers(this->TagContainer, BroadcastTo, Removed, this->ParentObject);
 }
 
@@ -68,13 +78,13 @@ void FAssetTagSubject::PostEditChangeProperty(const FPropertyChangedEvent& Prope
 
 	if (RemovedTags.Num() > 0)
 	{
-		Subsystem->RemoveObjectFromTags(this->ParentObject, RemovedTags);
+		Subsystem->RemoveObjectFromTags(this->ParentObject, RemovedTags, this->SubjectId);
 	}
 	Subsystem->NotifySubscribers(RemovedTags, BroadcastTo, Removed, this->ParentObject);
 	
 	if (InsertedTags.Num() > 0)
 	{
-		Subsystem->InsertObjectToTags(this->ParentObject, InsertedTags);
+		Subsystem->InsertObjectToTags(this->ParentObject, InsertedTags, this->SubjectId);
 	}
 	Subsystem->NotifySubscribers(InsertedTags, BroadcastTo, Inserted, this->ParentObject);
 }

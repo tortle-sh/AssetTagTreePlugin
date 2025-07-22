@@ -7,9 +7,10 @@
 #include "common/AssetTagTreePCH.h"
 #include "common/AssetTagTreeUtils.h"
 
-TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGameplayTagContainer& Tags,
-                                                                     const int32 CollectObjectsFrom,
-                                                                     const bool bIsRootTag)
+TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(
+	const FGameplayTagContainer& Tags,
+	const int32 CollectObjectsFrom,
+	const bool bIsRootTag)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -17,23 +18,23 @@ TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGame
 	}
 
 	TArray<TSoftObjectPtr<UObject>> Results = {};
-	if(Tags.HasTagExact(NodeTag))
+	if (Tags.HasTagExact(NodeTag))
 	{
-		if(!bIsRootTag || CollectObjectsFrom & RootNode)
+		if (!bIsRootTag || CollectObjectsFrom & RootNode)
 		{
 			Results.Append(Objects);
-			
-			if(CollectObjectsFrom & Children)
+
+			if (CollectObjectsFrom & Children)
 			{
 				Results.Append(FindObjectsFromChildren(true));
 			}
 
 			return Results;
 		}
-
 	}
-	
-	if(CollectObjectsFrom & Parents){
+
+	if (CollectObjectsFrom & Parents)
+	{
 		Results.Append(Objects);
 	}
 
@@ -48,12 +49,12 @@ TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsByTags(const FGame
 TArray<TSoftObjectPtr<UObject>> UAssetTagTreeNode::FindObjectsFromChildren(const bool bIsFirst)
 {
 	TArray<TSoftObjectPtr<UObject>> Results;
-	if(!bIsFirst)
+	if (!bIsFirst)
 	{
 		Results.Append(Objects);
 	}
-	
-	for(const auto Child : ChildNodes)
+
+	for (const auto Child : ChildNodes)
 	{
 		Results.Append(Child->FindObjectsFromChildren());
 	}
@@ -118,21 +119,21 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 	{
 		FGameplayTag NextTag = GetNextTag(Tag);
 
-		if(!NextTag.MatchesTag(NodeTag))
+		if (!NextTag.MatchesTag(NodeTag))
 		{
 			continue;
 		}
 
-		if(NextTag.MatchesTagExact(NodeTag))
+		if (NextTag.MatchesTagExact(NodeTag))
 		{
 			continue;
 		}
 
-		if(CreatedTags.HasTagExact(NextTag))
+		if (CreatedTags.HasTagExact(NextTag))
 		{
 			continue;
 		}
-		
+
 		UAssetTagTreeNode* NewChild = NewObject<UAssetTagTreeNode>();
 		NewChild->SetTag(NextTag);
 		this->ChildNodes.Add(NewChild);
@@ -141,7 +142,17 @@ void UAssetTagTreeNode::CreateMissingChildren(const FGameplayTagContainer& Tags)
 	}
 }
 
-void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags)
+void UAssetTagTreeNode::UpdateNodeHash()
+{
+	NodeHash = GetTypeHash(NodeTag);
+	for (const FGuid& SubjectId : SubjectIds)
+	{
+		NodeHash = HashCombine(NodeHash, GetTypeHash(SubjectId));
+	}
+}
+
+void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplayTagContainer& Tags,
+                                     const FGuid& SubjectId)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -150,9 +161,11 @@ void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplay
 
 	if (Tags.HasTagExact(NodeTag))
 	{
-		if(NewAssetTagObject)
+		if (NewAssetTagObject)
 		{
 			LOG_INFO("added %s to %s", *NewAssetTagObject->GetName(), *GetTag().GetTagName().ToString());
+			this->SubjectIds.Add(SubjectId);
+			UpdateNodeHash();
 			this->Objects.Add(NewAssetTagObject);
 		}
 	}
@@ -161,11 +174,12 @@ void UAssetTagTreeNode::InsertToTags(UObject* NewAssetTagObject, const FGameplay
 
 	for (const auto Child : ChildNodes)
 	{
-		Child->InsertToTags(NewAssetTagObject, Tags);
+		Child->InsertToTags(NewAssetTagObject, Tags, SubjectId);
 	}
 }
 
-void UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags)
+void UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const FGameplayTagContainer& Tags,
+                                             const FGuid& SubjectId)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -175,12 +189,14 @@ void UAssetTagTreeNode::RemoveObjectFromTags(UObject* OldAssetTagObject, const F
 	if (Tags.HasTagExact(NodeTag))
 	{
 		LOG_INFO("removed %s from %s", *OldAssetTagObject->GetName(), *GetTag().GetTagName().ToString());
+		SubjectIds.Remove(SubjectId);
+		UpdateNodeHash();
 		Objects.Remove(OldAssetTagObject);
 	}
 
 	for (const auto Child : ChildNodes)
 	{
-		Child->RemoveObjectFromTags(OldAssetTagObject, Tags);
+		Child->RemoveObjectFromTags(OldAssetTagObject, Tags, SubjectId);
 	}
 }
 
@@ -214,13 +230,16 @@ void UAssetTagTreeNode::CollectChildTags(FGameplayTagContainer& ChildTags)
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdate(const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject) const
+void UAssetTagTreeNode::BroadcastUpdate(const EBroadcastType BroadcastType,
+                                        const TSoftObjectPtr<UObject>& ChangedObject) const
 {
-	LOG_INFO("%s Type Broadcast from: %s", *UAssetTagTreeUtils::BroadcastTypeToString(BroadcastType), *NodeTag.GetTagName().ToString());
-	OnSubTreeUpdated.Broadcast(BroadcastType, ChangedObject);
+	LOG_INFO("%s Type Broadcast from: %s", *UAssetTagTreeUtils::BroadcastTypeToString(BroadcastType),
+	         *NodeTag.GetTagName().ToString());
+	OnSubTreeUpdated.Broadcast(BroadcastType, ChangedObject, NodeTag, NodeHash);
 }
 
-void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags, const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject)
+void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags, const EBroadcastType BroadcastType,
+                                         const TSoftObjectPtr<UObject>& ChangedObject)
 {
 	if (!Tags.HasTag(NodeTag))
 	{
@@ -238,7 +257,8 @@ void UAssetTagTreeNode::BroadcastUpdates(const FGameplayTagContainer& Tags, cons
 	}
 }
 
-void UAssetTagTreeNode::BroadcastUpdatesToChildren(const EBroadcastType BroadcastType, const TSoftObjectPtr<UObject>& ChangedObject)
+void UAssetTagTreeNode::BroadcastUpdatesToChildren(const EBroadcastType BroadcastType,
+                                                   const TSoftObjectPtr<UObject>& ChangedObject)
 {
 	for (const auto Child : ChildNodes)
 	{
@@ -293,14 +313,14 @@ FSubTreeUpdatedDelegate& UAssetTagTreeNode::GetOnSubTreeUpdatedDelegate()
 }
 
 void UAssetTagTreeNode::RegisterCallbackOnTags(const FCallbackDelegate& CallbackDelegate,
-	const FGameplayTagContainer& Tags)
+                                               const FGameplayTagContainer& Tags)
 {
-	if(!Tags.HasTag(NodeTag))
+	if (!Tags.HasTag(NodeTag))
 	{
 		return;
 	}
 
-	if(Tags.HasTagExact(NodeTag))
+	if (Tags.HasTagExact(NodeTag))
 	{
 		this->OnSubTreeUpdated.Add(CallbackDelegate);
 		LOG_INFO("added callback to %s", *GetTag().GetTagName().ToString());
@@ -308,29 +328,29 @@ void UAssetTagTreeNode::RegisterCallbackOnTags(const FCallbackDelegate& Callback
 
 	CreateMissingChildren(Tags);
 
-	for(const auto Child : ChildNodes)
+	for (const auto Child : ChildNodes)
 	{
 		Child->RegisterCallbackOnTags(CallbackDelegate, Tags);
 	}
 }
 
 void UAssetTagTreeNode::RemoveCallbackFromTags(const FCallbackDelegate& CallbackDelegate,
-	const FGameplayTagContainer& Tags)
+                                               const FGameplayTagContainer& Tags)
 {
-	if(!Tags.HasTag(NodeTag))
+	if (!Tags.HasTag(NodeTag))
 	{
 		return;
 	}
 
-	if(Tags.HasTagExact(NodeTag))
+	if (Tags.HasTagExact(NodeTag))
 	{
 		LOG_INFO("Removed callback from %s", *GetTag().GetTagName().ToString());
 		this->OnSubTreeUpdated.Remove(CallbackDelegate);
 	}
 
-	for(const auto Child : ChildNodes)
+	for (const auto Child : ChildNodes)
 	{
-		if(Child)
+		if (Child)
 		{
 			Child->RemoveCallbackFromTags(CallbackDelegate, Tags);
 		}

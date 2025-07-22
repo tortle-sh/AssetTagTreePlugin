@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AssetTagTreeConstants.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "AssetTagSubject.generated.h"
@@ -23,8 +22,14 @@ struct ASSETTAGTREERUNTIME_API FAssetTagSubject
 	FGameplayTagContainer TagContainer;
 	
 	FGameplayTagContainer PreChangeTagContainer;
+	
+	UPROPERTY(VisibleAnywhere)
+	FGuid SubjectId;
 
-	void InitializeSubject() const;
+	UPROPERTY()
+	bool Initialized;
+
+	void InitializeSubject( UObject* Subject, uint8 BroadcastStrategy);
 	void DeinitializeSubject() const;
 	void PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent) const;
 	void PreEditChange();
