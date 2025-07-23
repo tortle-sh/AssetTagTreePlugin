@@ -3,9 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AssetTagTreeSubsystem.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "AssetTagSubject.generated.h"
+
+struct FDefaultSubjectConfig
+{
+	UObject* Subject;
+	ETagCollectionFlag BroadcastStrategy;
+};
 
 USTRUCT(BlueprintType)
 struct ASSETTAGTREERUNTIME_API FAssetTagSubject
@@ -27,9 +34,9 @@ struct ASSETTAGTREERUNTIME_API FAssetTagSubject
 	FGuid SubjectId;
 
 	UPROPERTY()
-	bool Initialized;
+	bool bInitialized;
 
-	void InitializeSubject( UObject* Subject, uint8 BroadcastStrategy);
+	void InitializeSubject(const FDefaultSubjectConfig& DefaultConfig);
 	void DeinitializeSubject() const;
 	void PostEditChangeProperty(const FPropertyChangedEvent& PropertyChangedEvent) const;
 	void PreEditChange();

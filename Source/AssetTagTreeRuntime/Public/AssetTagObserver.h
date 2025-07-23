@@ -4,11 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "AssetTagTreeNode.h"
+#include "AssetTagTreeSubsystem.h"
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "AssetTagObserver.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE(FObservedObjectsChangedDelegate);
+
+struct FDefaultObserverConfig
+{
+	ETagCollectionFlag CollectObjectsFrom;
+	TSubclassOf<UObject> FilteredClass;
+};
 
 USTRUCT()
 struct ASSETTAGTREERUNTIME_API FAssetTagObserver
@@ -19,7 +26,7 @@ struct ASSETTAGTREERUNTIME_API FAssetTagObserver
 	uint8 CollectObjectsFrom;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UObject> FilteredClass = UObject::StaticClass();
+	TSubclassOf<UObject> FilteredClass;
 
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer TagContainer;
@@ -43,11 +50,14 @@ struct ASSETTAGTREERUNTIME_API FAssetTagObserver
 
 	UPROPERTY(VisibleAnywhere)
 	uint32 CollectionHash;
+	
+	UPROPERTY()
+	bool bInitialized;
 
 	void AddObject(const TSoftObjectPtr<UObject>& Object);
 	void RemoveObject(const TSoftObjectPtr<UObject>& Object);
 
-	void InitializeObserver() const;
+	void InitializeObserver(const FDefaultObserverConfig& DefaultConfig);
 	void DeinitializeObserver() const;
 	bool Validate();
 

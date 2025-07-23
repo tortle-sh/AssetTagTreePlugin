@@ -38,13 +38,20 @@ void FAssetTagObserver::RemoveObject(const TSoftObjectPtr<UObject>& Object)
 	}
 }
 
-void FAssetTagObserver::InitializeObserver() const
+void FAssetTagObserver::InitializeObserver(const FDefaultObserverConfig& DefaultConfig)
 {
 	UAssetTagTreeSubsystem* Subsystem = GEngine->GetEngineSubsystem<UAssetTagTreeSubsystem>();
 	if (!Subsystem)
 	{
 		LOG_ERROR("AssetTagTreeSubsystem is not initialized!");
-		exit(1);
+		return;
+	}
+
+	if (!bInitialized)
+	{
+		CollectObjectsFrom = DefaultConfig.CollectObjectsFrom;
+		FilteredClass = DefaultConfig.FilteredClass;
+		bInitialized = true;
 	}
 
 	Subsystem->AddTagsToNodeTree(this->TagContainer);

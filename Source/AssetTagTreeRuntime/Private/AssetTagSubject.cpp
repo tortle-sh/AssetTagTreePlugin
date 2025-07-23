@@ -17,16 +17,16 @@ bool FAssetTagSubject::HaveTagsChanged(const FPropertyChangedEvent& PropertyChan
 	return PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED( FAssetTagSubject, TagContainer);
 }
 
-void FAssetTagSubject::InitializeSubject(UObject* Subject, uint8 BroadcastStrategy)
+void FAssetTagSubject::InitializeSubject(const FDefaultSubjectConfig& DefaultConfig)
 {
-	if (!Initialized)
+	if (!bInitialized)
 	{
-		ParentObject = Subject;
-		BroadcastTo = BroadcastStrategy;
+		ParentObject = DefaultConfig.Subject;
+		BroadcastTo = DefaultConfig.BroadcastStrategy;
 		TagContainer = {};
 		PreChangeTagContainer = {};
 		SubjectId = FGuid::NewGuid();
-		this->Initialized = true;
+		this->bInitialized = true;
 	}
 	
 	if (TagContainer.IsEmpty())
