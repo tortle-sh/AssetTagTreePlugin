@@ -28,9 +28,15 @@ request all AssetTagSubjects assigned to certain GameplayTags and manage AssetTa
 AssetTagSubjects (subjects) are used to categorize UObject Assets with GameplayTags. If a tag is being added/removed to the internal gameplaytag container, 
 the subject aka. the UObject which should be categorized, is being added/removed to/from the AssetTagTree and all relevant observers are being notified about the change.
 
+<img width="914" height="592" alt="image" src="https://github.com/user-attachments/assets/52af7eac-f202-4678-8369-00f6e14822f7" />
+
+
 ### AssetTagObsever
 By adding tags to the internal GameplayTagContainer a AssetTagObserver, or to be more specific its callback function, is being added to the corrisponding nodes of the AssetTagTree.
 By setting up the ECollectionStrategy enum, subjects from child or parent tags can also be imported. 
+
+<img width="962" height="560" alt="image" src="https://github.com/user-attachments/assets/483ae2c4-5e74-428b-8008-b49f3b19243d" />
+
 
 ## How to use it
 The AssetTagSubject and AssetTagObserver classes are structs, meaning that they have to be added to a parent asset which should be categorized or are interested in categorized objects.
