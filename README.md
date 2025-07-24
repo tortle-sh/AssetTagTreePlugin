@@ -7,8 +7,8 @@ and subscribe to categories to stay informed about changes utilizing the [Observ
 
 ## How does it work?
 The main components of this Plugin are
-- The FAssetTagTree,
-- FAssetTagSubjects,
+- The AssetTagTree,
+- AssetTagSubjects,
 - AssetTagObservers,
 - and the AssetTagTreeSubsystem
 
@@ -31,3 +31,12 @@ the subject aka. the UObject which should be categorized, is being added/removed
 ### AssetTagObsever
 By adding tags to the internal GameplayTagContainer a AssetTagObserver, or to be more specific its callback function, is being added to the corrisponding nodes of the AssetTagTree.
 By setting up the ECollectionStrategy enum, subjects from child or parent tags can also be imported. 
+
+## How to use it
+The AssetTagSubject and AssetTagObserver classes are structs, meaning that they have to be added to a parent asset which should be categorized or are interested in categorized objects.
+To set up the tree structure on engine startup the parent assets, need to be automatically initialized by a custom AssetManager.
+
+Hereare are some implementation references, from another Project called [InfodemicSystemPlugin](https://github.com/tortle-sh/InfodemicSystemPlugin/tree/master), used for persisting information using DataAssets and categirzing them using the AssetTagTreePlugin:
+- AssetTagSubject: [Subject.h](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Public/base/IDS_InformationBundle.h), [Subject.cpp](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Private/base/IDS_InformationBundle.cpp)
+- AssetTagObserver: [Observer.h](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Public/base/IDS_InformationCollection.h), [Observer.cpp](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Private/base/IDS_InformationCollection.cpp)
+- AssetManager: [AssetManager.h](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Public/InfodemicAssetManager.h), [AssetManager.cpp](https://github.com/tortle-sh/InfodemicSystemPlugin/blob/master/Source/InfodemicCore/Private/InfodemicAssetManager.cpp)
