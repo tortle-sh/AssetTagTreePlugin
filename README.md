@@ -16,7 +16,7 @@ The main components of this Plugin are
 The AssetTagTree (ATT) is a tree structure which mimics the structure of all GameplayTags used for categorization, using GameplayTags as identifiers for nodes. 
 A node within this tree stores UObject references of subjects, which are directly assigned to this node, and callback delegates which are used to inform observers about changes.
 
-> Note: The AssetTagTree is NOT being persisted. It only lives in memory, sharing the life cycle of the engine.
+> Note: The AssetTagTree is NOT being persisted. It only lives in-memory, sharing the life cycle of the engine.
 
 ### AssetTagTreeSubsystem
 The AssetTagTreeSubsystem is an EngineSubsystem used to manage the AssetTagTree and provides functionality to add/remove subjects to/from the ATT, 
