@@ -22,7 +22,7 @@ A node within this tree stores UObject references of subjects, which are directl
 The AssetTagTreeSubsystem is an EngineSubsystem used to manage the AssetTagTree and provides functionality to add/remove subjects to/from the ATT, 
 request all AssetTagSubjects assigned to certain GameplayTags and manage AssetTagObservers.
 
-![assetTagInsertion_sequenzDiagram (1)](https://github.com/user-attachments/assets/d90138a1-9e72-4bc9-8945-e2c6ec2b95d2)# AssetTagTreePlugin
+![assetTagInsertion_sequenzDiagram (1)](https://github.com/user-attachments/assets/d90138a1-9e72-4bc9-8945-e2c6ec2b95d2)
 
 ### AssetTagSubject
 AssetTagSubjects (subjects) are used to categorize UObject Assets with GameplayTags. If a tag is being added/removed to the internal gameplaytag container, 
